@@ -1,0 +1,1436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Which open-weight LLM fits which machine, how fast it runs, and which inference engine to use — from a Raspberry Pi to a DGX Spark. Free, open source, with an MCP server.">
+<meta property="og:title" content="SHILA — local AI fitment planner">
+<meta property="og:description" content="Which open-weight LLM fits which machine, how fast it runs, and which inference engine to use — from a Raspberry Pi to a DGX Spark. Free, open source, with an MCP server.">
+<meta property="og:type" content="website">
+<meta name="author" content="Dr. Arvind Karthikeyan">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Crect%20x%3D%224%22%20y%3D%2230%22%20width%3D%2240%22%20height%3D%228%22%20rx%3D%222%22%20fill%3D%22%237b8690%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2221%22%20width%3D%2232%22%20height%3D%228%22%20rx%3D%222%22%20fill%3D%22%234a535b%22%2F%3E%3Crect%20x%3D%2213%22%20y%3D%2212%22%20width%3D%2222%22%20height%3D%228%22%20rx%3D%222%22%20fill%3D%22%239a4f1e%22%2F%3E%3Crect%20x%3D%2219%22%20y%3D%225%22%20width%3D%2210%22%20height%3D%226%22%20rx%3D%222%22%20fill%3D%22%231a1e21%22%2F%3E%3C%2Fsvg%3E">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Shila Fitment Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a workbench — a control rail on the left (box · model · run settings) and a scrolling report on the right; stacks to one column on phones. */
+:root {
+  --bg: #f1f2ee;          /* cool stone */
+  --surface: #ffffff;
+  --surface-2: #e7e9e3;
+  --ink: #1a1e21;
+  --ink-2: #4a535b;
+  --ink-3: #7b8690;
+  --line: #d3d7cf;
+  --accent: #9a4f1e;      /* copper */
+  --accent-ink: #ffffff;
+  --accent-soft: #f2e4d8;
+  --ok: #2b7a4b; --ok-soft: #dcefe2;
+  --warn: #8f6400; --warn-soft: #f6ebc9;
+  --bad: #b2392a; --bad-soft: #f6dbd6;
+  --info: #2a5c86; --info-soft: #dae7f2;
+  --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141719; --surface: #1c2023; --surface-2: #24292d; --ink: #ebede8; --ink-2: #b2b9b4; --ink-3: #7d8886; --line: #30373b;
+    --accent: #e0905a; --accent-ink: #1a1e21; --accent-soft: #3a2a1e;
+    --ok: #6fcf97; --ok-soft: #1c3426; --warn: #e6b84a; --warn-soft: #3a3118; --bad: #f07c6a; --bad-soft: #3f221e; --info: #80b4e2; --info-soft: #1d2e3c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141719; --surface: #1c2023; --surface-2: #24292d; --ink: #ebede8; --ink-2: #b2b9b4; --ink-3: #7d8886; --line: #30373b;
+  --accent: #e0905a; --accent-ink: #1a1e21; --accent-soft: #3a2a1e;
+  --ok: #6fcf97; --ok-soft: #1c3426; --warn: #e6b84a; --warn-soft: #3a3118; --bad: #f07c6a; --bad-soft: #3f221e; --info: #80b4e2; --info-soft: #1d2e3c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14.5px; line-height: 1.5; padding-inline: 16px; padding-block: 0 48px; }
+a { color: var(--accent); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h2 { font-size: 18px; font-weight: 700; font-variation-settings: 'wdth' 100; letter-spacing: -0.01em; }
+h3 { font-size: 15px; font-weight: 700; }
+.eyebrow { font-family: var(--body); font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.num { font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1280px; margin: 0 auto; }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding-block: 22px 14px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.mark { width: 46px; height: 46px; flex: none; }
+.brand h1 { font-size: 34px; font-weight: 800; font-variation-settings: 'wdth' 118; letter-spacing: 0.04em; line-height: 1; }
+.brand .tag { color: var(--ink-2); margin-top: 4px; font-size: 13.5px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+.chip.accent { background: var(--accent-soft); color: var(--accent); }
+
+/* bench */
+.bench { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 22px; padding-top: 18px; align-items: start; }
+@media (max-width: 860px) { .bench { grid-template-columns: 1fr; } .rail { position: static !important; } }
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); display: grid; gap: 14px; max-height: calc(100vh - 24px); overflow: auto; padding-right: 2px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.panel header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+select, input[type=number], input[type=text] { width: 100%; font: inherit; font-size: 14px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+select:focus, input:focus, button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+label.lbl { font-size: 12px; color: var(--ink-2); display: grid; gap: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button { font: inherit; font-size: 12.5px; padding: 5px 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.toggles { display: grid; gap: 6px; }
+.toggles label { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.toggles input { margin-top: 3px; accent-color: var(--accent); }
+.edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+details > summary { cursor: pointer; font-size: 12.5px; color: var(--accent); font-weight: 600; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: '▸ '; } details[open] > summary::before { content: '▾ '; }
+.note { font-size: 12.5px; color: var(--ink-3); }
+.btn { font: inherit; font-size: 13px; font-weight: 600; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.small { font-size: 12px; padding: 4px 9px; }
+
+/* report */
+.report { display: grid; gap: 18px; min-width: 0; }
+[role=tabpanel], [role=tabpanel] > * { min-width: 0; }
+.verdict p, .verdict .mono { overflow-wrap: anywhere; }
+td.mono { white-space: nowrap; }
+.status { white-space: nowrap; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { font: inherit; font-family: var(--display); font-weight: 700; font-size: 14px; padding: 10px 14px; border: 0; background: none; color: var(--ink-3); cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; margin-bottom: -1px; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.verdict { background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--ok); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 12px; }
+.verdict.tight { border-left-color: var(--warn); } .verdict.ssd { border-left-color: var(--warn); } .verdict.no { border-left-color: var(--bad); }
+.verdict h2 { font-size: 22px; line-height: 1.2; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.status.ok { background: var(--ok-soft); color: var(--ok); } .status.tight, .status.ssd { background: var(--warn-soft); color: var(--warn); } .status.no, .status.na { background: var(--bad-soft); color: var(--bad); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.stat { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.stat .v { font-family: var(--display); font-size: 24px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.stat .k { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+.memline { display: grid; gap: 6px; }
+.bar { height: 10px; border-radius: 6px; background: var(--surface-2); overflow: hidden; display: flex; }
+.bar i { display: block; height: 100%; }
+.bar .w { background: var(--accent); } .bar .k { background: var(--info); } .bar .o { background: var(--ink-3); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--ink-2); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+ul.tight { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 13.5px; color: var(--ink-2); }
+.anchors { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.anchors .a { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.anchors .a b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.anchors .a.hit { background: var(--ok-soft); border-radius: 6px; padding: 3px 8px; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.pick { background: var(--accent-soft); }
+tr.dim { color: var(--ink-3); }
+.spark { display: inline-block; height: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; margin-right: 6px; }
+.tier { font-size: 11.5px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
+.tier.t5, .tier.t4 { background: var(--ok-soft); color: var(--ok); } .tier.t2, .tier.t1, .tier.t0 { background: var(--warn-soft); color: var(--warn); }
+
+.engines { display: grid; gap: 12px; }
+.engine { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 10px; min-width: 0; }
+.engine.top { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.engine header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.engine header h3 { font-size: 17px; }
+.kind { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; }
+.kind.general { background: var(--info-soft); color: var(--info); } .kind.specific { background: var(--accent-soft); color: var(--accent); }
+.rank { font-family: var(--display); font-weight: 800; font-size: 13px; color: var(--accent); letter-spacing: 0.04em; }
+.engine p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+.cmd { position: relative; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+.cmd pre { margin: 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; white-space: pre; }
+.cmd .btn { position: absolute; top: 6px; right: 6px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+@media (max-width: 640px) { .two { grid-template-columns: 1fr; } .brand h1 { font-size: 28px; } }
+.muted { color: var(--ink-3); }
+.sources { font-size: 13px; color: var(--ink-2); display: grid; gap: 4px; }
+.sources a { word-break: break-all; }
+.how { font-size: 13.5px; color: var(--ink-2); display: grid; gap: 8px; }
+.how code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+.credit { display: grid; gap: 4px; padding-block: 24px 8px; margin-top: 24px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); }
+.linkchip { border: 0; cursor: pointer; font: inherit; font-size: 12px; background: var(--accent-soft); color: var(--accent); }
+a.chip { text-decoration: none; }
+.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="30" width="40" height="8" rx="2" fill="var(--ink-3)"/><rect x="8" y="21" width="32" height="8" rx="2" fill="var(--ink-2)"/><rect x="13" y="12" width="22" height="8" rx="2" fill="var(--accent)"/><rect x="19" y="5" width="10" height="6" rx="2" fill="var(--ink)"/></svg>
+      <div>
+        <h1>SHILA</h1>
+        <div class="tag">Local AI fitment planner — which model fits which box, how fast, and with which engine.</div>
+      </div>
+    </div>
+    <div class="meta">
+      <span class="chip" id="dataDate">data as of —</span>
+      <span class="chip" id="counts"></span>
+      <a class="chip" href="https://github.com/arvidkarthik2000-hue/shila" target="_blank" rel="noopener">GitHub ↗</a>
+      <button class="chip linkchip" type="button" data-goto-tab="mcp">Use in Claude / Cursor (MCP)</button>
+      <span class="chip accent">estimates ±30%; measured anchors cited</span>
+    </div>
+  </header>
+
+  <main class="bench">
+    <aside class="rail">
+      <section class="panel" aria-labelledby="boxH">
+        <header><h2 id="boxH">Box</h2><span class="note" id="boxPrice"></span></header>
+        <label class="lbl">Hardware preset
+          <select id="hwSel" aria-label="Hardware preset"></select>
+        </label>
+        <div id="customWrap" hidden>
+          <label class="lbl">Describe your machine
+            <input type="text" id="customSpec" placeholder="e.g. RTX 3060 12GB, 32GB DDR4, Windows" autocomplete="off">
+          </label>
+          <div class="note">Plain words work: “Mac mini M4 Pro 48GB”, “32GB DDR5 Ryzen 7 8845HS”, “Raspberry Pi 5 16GB”, “RTX 4090 + 64GB DDR5”. Fine-tune with Edit box. The command-line tool can detect your machine automatically.</div>
+        </div>
+        <div class="chips" id="hwChips"></div>
+        <div class="note" id="hwNote"></div>
+        <details id="hwEdit">
+          <summary>Edit box</summary>
+          <div class="edit-grid" style="margin-top:8px">
+            <label class="lbl">RAM (GB)<input type="number" id="eRam" min="4" max="1024" step="1"></label>
+            <label class="lbl">RAM bandwidth (GB/s)<input type="number" id="eRamBw" min="5" max="2000" step="1"></label>
+            <label class="lbl">GPU VRAM (GB)<input type="number" id="eVram" min="0" max="192" step="1"></label>
+            <label class="lbl">VRAM bandwidth (GB/s)<input type="number" id="eVramBw" min="0" max="5000" step="1"></label>
+            <label class="lbl">OS<select id="eOs"><option value="linux">Linux</option><option value="windows">Windows</option><option value="macos">macOS</option></select></label>
+            <label class="lbl">Price (₹, optional)<input type="number" id="ePrice" min="0" step="1000"></label>
+          </div>
+          <div class="note" style="margin-top:6px">Discrete-GPU boxes: VRAM fields apply. Unified boxes (Mac, Strix Halo, Spark): RAM is the GPU memory.</div>
+        </details>
+      </section>
+
+      <section class="panel" aria-labelledby="modelH">
+        <header><h2 id="modelH">Model</h2></header>
+        <label class="lbl">Open-weight model
+          <select id="mSel" aria-label="Model"></select>
+        </label>
+        <div class="chips" id="mChips"></div>
+        <div class="note" id="mWhy"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="runH">
+        <header><h2 id="runH">Run settings</h2></header>
+        <div class="lbl">Context window reserved
+          <div class="seg" id="ctxSeg" role="group" aria-label="Context length"></div>
+        </div>
+        <div class="lbl">Simultaneous users
+          <div class="seg" id="usersSeg" role="group" aria-label="Users"></div>
+        </div>
+        <div class="lbl">Lowest quality you accept
+          <div class="seg" id="floorSeg" role="group" aria-label="Quality floor"></div>
+        </div>
+        <div class="toggles">
+          <label><input type="checkbox" id="optKv8"> <span>8-bit KV cache (halves context memory; tiny quality cost)</span></label>
+          <label><input type="checkbox" id="optVision"> <span>Need image input (loads the vision projector)</span></label>
+          <label><input type="checkbox" id="optWired" checked> <span>Mac: raise the GPU memory limit (<span class="mono">iogpu.wired_limit_mb</span>)</span></label>
+          <label id="optLazyWrap"><input type="checkbox" id="optLazy" checked> <span>Flash-Next: stream the 28.8 GB n-gram table from the SSD instead of RAM</span></label>
+        </div>
+        <button class="btn primary" id="copyPlan">Copy this plan as Markdown</button>
+      </section>
+    </aside>
+
+    <section class="report">
+      <nav class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="fit" aria-selected="true">Fit report</button>
+        <button class="tab" role="tab" data-tab="box" aria-selected="false">What this box runs</button>
+        <button class="tab" role="tab" data-tab="cheapest" aria-selected="false">Cheapest box for this model</button>
+        <button class="tab" role="tab" data-tab="engines" aria-selected="false">Engine atlas</button>
+        <button class="tab" role="tab" data-tab="mcp" aria-selected="false">MCP &amp; CLI</button>
+      </nav>
+
+      <div id="tab-fit" role="tabpanel" style="display:grid;gap:18px">
+        <section class="verdict" id="verdict"></section>
+        <section>
+          <h2 style="margin-bottom:8px">Every quant of this model on this box</h2>
+          <div class="note" style="margin-bottom:8px">Highlighted row is the recommended pick. “Short” is decode speed in a short chat; “full” is with the whole reserved context in play. Rows marked “not for this hardware” are file formats this box cannot execute.</div>
+          <div class="tablewrap"><table id="ladder"></table></div>
+        </section>
+        <section>
+          <h2 style="margin-bottom:8px">Engines, ranked for this box and model</h2>
+          <div class="engines" id="engines"></div>
+        </section>
+      </div>
+
+      <div id="tab-box" role="tabpanel" hidden style="display:grid;gap:12px">
+        <h2 id="boxReportH"></h2>
+        <div class="note">Each model at its recommended quant for this box and these run settings. Sorted by speed.</div>
+        <div class="tablewrap"><table id="boxTable"></table></div>
+      </div>
+
+      <div id="tab-cheapest" role="tabpanel" hidden style="display:grid;gap:12px">
+        <h2 id="cheapH"></h2>
+        <div class="note">Every box in the catalogue, cheapest first, at the best quant that fits it. Prices are Indian listings from October 2026 (DRAM shortage pricing) unless marked US or estimated.</div>
+        <div class="tablewrap"><table id="cheapTable"></table></div>
+      </div>
+
+      <div id="tab-engines" role="tabpanel" hidden style="display:grid;gap:12px">
+        <h2>The 2026 engine landscape</h2>
+        <div class="note">General engines run thousands of models; model-specific engines run one or two, usually 1.5–3× faster on one hardware class, with their own weight formats. Almost every 2026 specialist was built with an AI coding agent around Qwen3.8-27B or Qwen3.8-Flash-Next.</div>
+        <div class="tablewrap"><table id="atlas"></table></div>
+      </div>
+
+      <div id="tab-mcp" role="tabpanel" hidden style="display:grid;gap:14px">
+        <h2>Ask your AI assistant what your machine can run</h2>
+        <p class="muted" style="margin:0">SHILA ships an MCP server. Add it to Claude Desktop, Claude Code, Cursor or any MCP client and ask in plain words: “can I run LFM2.5-24B-A2B on this laptop?”, “what is the cheapest box for Qwen3.8-27B at 30 tok/s?”. It can inspect the computer it runs on, reads any Hugging Face model, and answers with the quant, the speed estimate and the engine commands. Needs Node.js 18 or newer; nothing else to install.</p>
+        <section class="panel"><h3>Claude Code</h3><div class="cmd"><button class="btn small" type="button" data-copy>Copy</button><pre>claude mcp add shila -- npx -y github:arvidkarthik2000-hue/shila mcp</pre></div></section>
+        <section class="panel"><h3>Claude Desktop, Cursor, Windsurf, VS Code (mcp.json / claude_desktop_config.json)</h3><div class="cmd"><button class="btn small" type="button" data-copy>Copy</button><pre>{
+  "mcpServers": {
+    "shila": {
+      "command": "npx",
+      "args": ["-y", "github:arvidkarthik2000-hue/shila", "mcp"]
+    }
+  }
+}</pre></div></section>
+        <section class="panel"><h3>Tools it exposes</h3>
+          <ul class="tight">
+            <li><b>check_compatibility</b>: model + machine → verdict, best quant file, estimated tok/s, memory, ranked engines with commands, published measurements</li>
+            <li><b>what_can_i_run</b>: machine → every catalogue model ranked by speed</li>
+            <li><b>cheapest_hardware</b>: model + minimum tok/s (+ budget in ₹) → boxes, cheapest first</li>
+            <li><b>probe_this_machine</b>: detects RAM, bandwidth, CPU, GPU and VRAM of the computer the server runs on (read-only)</li>
+            <li><b>list_models</b>, <b>list_hardware</b>, <b>list_engines</b></li>
+          </ul>
+        </section>
+        <section class="panel"><h3>Command line</h3><div class="cmd"><button class="btn small" type="button" data-copy>Copy</button><pre>npx -y github:arvidkarthik2000-hue/shila fit LiquidAI/LFM2.5-24B-A2B          # detects this machine
+npx -y github:arvidkarthik2000-hue/shila fit qwen3.8-27b --on "RTX 4090, 64GB DDR5"
+npx -y github:arvidkarthik2000-hue/shila can-run --on "Mac mini M4 16GB"
+npx -y github:arvidkarthik2000-hue/shila cheapest lfm2.5-24b --min-tps 20 --budget 150000</pre></div></section>
+      </div>
+
+      <details class="panel">
+        <summary>How the numbers are computed</summary>
+        <div class="how" style="margin-top:8px">
+          <div><b>Memory.</b> weights (the real file size of that quant) + KV cache (<code>2 × attention layers × KV heads × head dim × 2 bytes × context × users</code>, from each model’s config) + a runtime allowance (0.8 GB + 0.6 GB per 32K of context). Discrete GPUs keep 0.6 GB free; Windows reserves 4 GB of RAM, Linux 3. Macs can wire ~70–78% of unified memory to the GPU by default, or RAM − 3.5 GB with the sysctl raised. Strix Halo / Spark keep 12–16 GB for the OS.</div>
+          <div><b>Placement.</b> In order: all in VRAM → unified memory → MoE experts in RAM with the rest on the GPU (llama.cpp <code>--n-cpu-moe</code>) → dense layers split → CPU / iGPU over RAM → experts streamed from SSD. Flash-Next’s 28.8 GB n-gram table is counted as SSD-resident when the toggle is on (llama.cpp <code>--tensor-read-lazy auto</code>).</div>
+          <div><b>Decode speed.</b> Each token reads the active weights (active params × bytes per param of that file) plus the KV cache in play; <code>ms = bytes ÷ (bandwidth × efficiency) + layers × per-layer overhead + attention compute</code>. Efficiencies: CUDA 0.88, Metal 0.88, Strix/Spark 0.88, iGPU Vulkan 0.65, desktop CPU 0.45 (MoE) / 0.60 (dense), N-series CPU 0.45, Pi-class 0.55–0.70; RAM-resident experts 0.50. Architecture multipliers: LFM conv blocks ×1.15, Qwen GDN ×0.95, Flash-Next ×0.70. Calibrated against the cited measurements; expect ±30%. Drafting (MTP / DFlash / DSpark) is not included in the estimate; it adds 1.5–2.5× on dense models and 1.1–1.3× on MoEs.</div>
+          <div><b>Prompt speed.</b> effective TFLOPS of the compute unit ÷ (2 × active params), halved when the n-gram table streams from disk and reduced to 60% when experts live in RAM.</div>
+          <div><b>What is not modelled.</b> Expert caches (llama.cpp <code>--moe-cache-mib</code>, Strata, Infernix) that keep hot experts in VRAM, thermal limits on small boxes, PCIe generation, and concurrency throughput. Users only change the memory budget.</div>
+        </div>
+      </details>
+      <details class="panel">
+        <summary>Sources</summary>
+        <div class="sources" id="sources" style="margin-top:8px"></div>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="wrap credit">
+  <div>SHILA is open source (Apache-2.0; data CC-BY-4.0) · built by <a href="https://www.linkedin.com/in/dr-arvind-karthik-5222b544" target="_blank" rel="noopener">Dr. Arvind Karthikeyan</a> · <a href="https://customai.in" target="_blank" rel="noopener">CustomAi.in</a></div>
+  <div>Found a wrong number or measured your own box? <a href="https://github.com/arvidkarthik2000-hue/shila/issues/new?template=benchmark.yml" target="_blank" rel="noopener">Submit a benchmark</a> · <a href="https://github.com/arvidkarthik2000-hue/shila/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribute data</a></div>
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+window.SHILA_DATA = {"models":[{"id":"lfm25-24b","attnFlops":8192,"attnLayers":10,"archMul":1.15,"name":"LFM2.5-24B-A2B","vendor":"Liquid AI","hf":"LiquidAI/LFM2.5-24B-A2B","family":"LFM2.5","total":23.97,"active":2.45,"kind":"moe","layers":40,"kvBytes":20480,"constStateGB":0.03,"expertWeightFrac":0.93,"expertActiveFrac":0.59,"ctxMax":131072,"released":"2026-10-13","license":"LFM Open License v1.0","reasoning":"always thinks","vision":false,"mmprojGB":0,"arch":"40 layers: 30 double-gated short-conv + 10 GQA (8 KV heads × 64). 64 experts per MoE block, top-4. 128K vocab.","why":"Smallest per-token footprint of the 2026 mid-size MoEs: 2.45B active and a 20 KB/token KV cache, so context is almost free.","quants":[{"tag":"UD-IQ2_M","gb":7.54,"fmt":"gguf","repo":"unsloth/LFM2.5-24B-A2B-Preview-GGUF","note":"preview weights (pre-release)"},{"tag":"UD-IQ3_XXS","gb":8.96,"fmt":"gguf","repo":"unsloth/LFM2.5-24B-A2B-Preview-GGUF","note":"preview weights"},{"tag":"UD-Q3_K_XL","gb":10.95,"fmt":"gguf","repo":"unsloth/LFM2.5-24B-A2B-Preview-GGUF","note":"preview weights"},{"tag":"QAD-Q4_0","gb":13.58,"fmt":"gguf","repo":"LiquidAI/LFM2.5-24B-A2B-GGUF","qat":true,"note":"quant-aware distilled by Liquid: best 4-bit"},{"tag":"MLX-4bit","gb":13.57,"fmt":"mlx","repo":"LiquidAI/LFM2.5-24B-A2B-MLX-4bit"},{"tag":"Q4_K_M","gb":14.53,"fmt":"gguf","repo":"LiquidAI/LFM2.5-24B-A2B-GGUF","note":"the quant Liquid benchmarked (184 / 114 tok/s)"},{"tag":"UD-Q4_K_XL","gb":14.88,"fmt":"gguf","repo":"unsloth/LFM2.5-24B-A2B-Preview-GGUF","note":"preview weights"},{"tag":"Q5_K_M","gb":17.03,"fmt":"gguf","repo":"LiquidAI/LFM2.5-24B-A2B-GGUF"},{"tag":"Q6_K","gb":19.69,"fmt":"gguf","repo":"LiquidAI/LFM2.5-24B-A2B-GGUF"},{"tag":"FP8","gb":24.75,"fmt":"fp8","repo":"LiquidAI/LFM2.5-24B-A2B-FP8","note":"vLLM / SGLang (Ada+ GPU)"},{"tag":"Q8_0","gb":25.49,"fmt":"gguf","repo":"LiquidAI/LFM2.5-24B-A2B-GGUF"},{"tag":"BF16","gb":47.96,"fmt":"bf16","repo":"LiquidAI/LFM2.5-24B-A2B"}],"anchors":[{"hw":"Mac Studio M5 Max (40-core)","hwId":"m5max-36","toks":184,"quant":"Q4_K_M","engine":"llama.cpp","by":"Liquid AI","src":"https://huggingface.co/LiquidAI/LFM2.5-24B-A2B"},{"hw":"Ryzen AI Max+ 395 (Strix Halo)","hwId":"strix-128","toks":114,"quant":"Q4_K_M","engine":"llama.cpp","by":"Liquid AI","src":"https://huggingface.co/LiquidAI/LFM2.5-24B-A2B"},{"hw":"MacBook M5 24 GB (predecessor LFM2-24B-A2B)","toks":71,"quant":"MLX 4-bit","engine":"oMLX","by":"omlx.ai benchmark","src":"https://omlx.ai/benchmarks/hter903g"},{"hw":"Mac M4 32 GB (predecessor LFM2-24B-A2B)","hwId":"m4-24","toks":61,"quant":"MLX 4-bit","engine":"oMLX","by":"omlx.ai benchmark","src":"https://omlx.ai/benchmarks/7sk5uf9y"}],"support":{"llamacpp":"day-one (lfm2moe)","vllm":"yes (Lfm2MoeForCausalLM)","sglang":"yes (+DSpark drafter coming)","mlx":"yes","ollama":"not in library yet; run the GGUF from hf.co","exl3":"Lfm2Moe listed in ExLlamaV3"}},{"id":"lfm25-8b","attnFlops":8192,"attnLayers":6,"archMul":1.15,"name":"LFM2.5-8B-A1B","vendor":"Liquid AI","hf":"LiquidAI/LFM2.5-8B-A1B","family":"LFM2.5","total":8.47,"active":1.5,"kind":"moe","layers":24,"kvBytes":12288,"constStateGB":0.02,"expertWeightFrac":0.8,"expertActiveFrac":0.5,"ctxMax":128000,"released":"2026-05-28","license":"LFM Open License v1.0","reasoning":"reasoning-tuned","vision":false,"mmprojGB":0,"arch":"24 layers (18 conv + 6 GQA); 32 experts, top-4.","why":"The 16 GB-box version of the LFM idea: 5 GB on disk at 4-bit.","quants":[{"tag":"UD-Q2_K_XL","gb":2.93,"fmt":"gguf","repo":"unsloth/LFM2.5-8B-A1B-GGUF"},{"tag":"UD-IQ4_XS","gb":4.26,"fmt":"gguf","repo":"unsloth/LFM2.5-8B-A1B-GGUF"},{"tag":"MLX-4bit","gb":4.83,"fmt":"mlx","repo":"LiquidAI/LFM2.5-8B-A1B-MLX-4bit"},{"tag":"Q4_0","gb":4.84,"fmt":"gguf","repo":"LiquidAI/LFM2.5-8B-A1B-GGUF"},{"tag":"Q4_K_M","gb":5.16,"fmt":"gguf","repo":"LiquidAI/LFM2.5-8B-A1B-GGUF"},{"tag":"Q6_K","gb":6.96,"fmt":"gguf","repo":"LiquidAI/LFM2.5-8B-A1B-GGUF"},{"tag":"Q8_0","gb":9.01,"fmt":"gguf","repo":"LiquidAI/LFM2.5-8B-A1B-GGUF"},{"tag":"BF16","gb":16.95,"fmt":"bf16","repo":"LiquidAI/LFM2.5-8B-A1B"}],"anchors":[],"support":{"llamacpp":"yes","ollama":"lfm2.5:8b in library","mlx":"yes"}},{"id":"lfm25-2.6b","attnFlops":8192,"attnLayers":8,"archMul":1.15,"name":"LFM2.5-2.6B","vendor":"Liquid AI","hf":"LiquidAI/LFM2.5-2.6B","family":"LFM2.5","total":2.7,"active":2.7,"kind":"dense","layers":30,"kvBytes":16384,"constStateGB":0.02,"ctxMax":131072,"released":"2026-07-28","license":"LFM Open License v1.0","reasoning":"yes","vision":false,"mmprojGB":0,"arch":"30 layers (22 conv + 8 GQA), dense.","why":"Runs on anything, including a Raspberry Pi.","quants":[{"tag":"QAD-Q4_0","gb":1.59,"fmt":"gguf","repo":"LiquidAI/LFM2.5-2.6B-GGUF","qat":true},{"tag":"Q4_K_M","gb":1.67,"fmt":"gguf","repo":"LiquidAI/LFM2.5-2.6B-GGUF"},{"tag":"Q6_K","gb":2.22,"fmt":"gguf","repo":"LiquidAI/LFM2.5-2.6B-GGUF"},{"tag":"Q8_0","gb":2.87,"fmt":"gguf","repo":"LiquidAI/LFM2.5-2.6B-GGUF"},{"tag":"BF16","gb":5.4,"fmt":"bf16","repo":"LiquidAI/LFM2.5-2.6B"}],"anchors":[{"hw":"Raspberry Pi 5 (LFM2.5-230M sibling)","hwId":"pi5-16","toks":42,"quant":"4-bit","engine":"llama.cpp","by":"Liquid AI","src":"https://www.liquid.ai/blog/lfm2-5-230m"}],"support":{"llamacpp":"yes","ollama":"yes"}},{"id":"qwen38-27b","attnFlops":24576,"attnLayers":16,"archMul":0.95,"name":"Qwen3.8-27B","vendor":"Alibaba Qwen","hf":"Qwen/Qwen3.8-27B","family":"Qwen3.8","total":27.78,"active":26,"kind":"dense","layers":64,"kvBytes":65536,"constStateGB":0.15,"ctxMax":262144,"released":"2026-08-14","license":"Apache-2.0","reasoning":"hybrid, on by default","vision":true,"mmprojGB":0.93,"arch":"64 layers: 48 Gated DeltaNet + 16 full attention (4 KV heads × 256). Dense. Built-in MTP head. 27-layer vision tower.","why":"The model every 2026 specialist engine targets: dense, so decode speed is pure bandwidth, and MTP/DFlash2/DSpark drafting roughly doubles it.","quants":[{"tag":"UD-IQ2_XXS","gb":7.27,"fmt":"gguf","repo":"unsloth/Qwen3.8-27B-GGUF"},{"tag":"UD-Q2_K_XL","gb":9.83,"fmt":"gguf","repo":"unsloth/Qwen3.8-27B-GGUF"},{"tag":"UD-IQ3_XXS","gb":10.93,"fmt":"gguf","repo":"unsloth/Qwen3.8-27B-GGUF"},{"tag":"UD-Q3_K_XL","gb":13.15,"fmt":"gguf","repo":"unsloth/Qwen3.8-27B-GGUF"},{"tag":"UD-IQ4_XS","gb":14.25,"fmt":"gguf","repo":"unsloth/Qwen3.8-27B-GGUF"},{"tag":"MLX-4bit","gb":16.05,"fmt":"mlx","repo":"mlx-community/Qwen3.8-27B-4bit"},{"tag":"UD-Q4_K_M","gb":16.46,"fmt":"gguf","repo":"unsloth/Qwen3.8-27B-GGUF"},{"tag":"UD-Q4_K_XL","gb":17.56,"fmt":"gguf","repo":"unsloth/Qwen3.8-27B-GGUF"},{"tag":"UD-Q5_K_M","gb":19.77,"fmt":"gguf","repo":"unsloth/Qwen3.8-27B-GGUF"},{"tag":"NVFP4","gb":21.92,"fmt":"nvfp4","repo":"nvidia/Qwen3.8-27B-NVFP4","note":"Blackwell GPUs (vLLM/SGLang/NInfer/Infernix) or Macs via lithos-metal"},{"tag":"UD-Q6_K","gb":21.98,"fmt":"gguf","repo":"unsloth/Qwen3.8-27B-GGUF"},{"tag":"Q8_0","gb":29.05,"fmt":"gguf","repo":"unsloth/Qwen3.8-27B-GGUF"},{"tag":"FP8","gb":30.89,"fmt":"fp8","repo":"Qwen/Qwen3.8-27B-FP8"},{"tag":"BF16","gb":54.66,"fmt":"bf16","repo":"Qwen/Qwen3.8-27B"}],"anchors":[{"hw":"RTX 5090 32 GB","hwId":"rtx5090","toks":209,"quant":"NVFP4 + DFlash2","engine":"Infernix","by":"Infernix README","src":"https://github.com/Wallawalla47/Infernix"},{"hw":"RTX 5090 32 GB","hwId":"rtx5090","toks":206,"quant":"NVFP4 + DFlash2","engine":"SGLang","by":"SGLang project","src":"https://github.com/sgl-project/sglang/releases"},{"hw":"RTX 5090 32 GB","hwId":"rtx5090","toks":74.8,"quant":"Q4_K_S","engine":"llama.cpp (no drafting)","by":"hardware-corner","src":"https://www.hardware-corner.net/qwen3-8-27b-hardware-tests/"},{"hw":"RTX 4090 24 GB","hwId":"rtx4090","toks":109,"quant":"UD-Q4_K_XL + MTP","engine":"llama.cpp","by":"thomaswildetech","src":"https://thomaswildetech.com/software-development/ai-agents/hardware-comparison/"},{"hw":"RTX 4090 24 GB","hwId":"rtx4090","toks":46.2,"quant":"Q4_K_S","engine":"llama.cpp (no drafting)","by":"hardware-corner","src":"https://www.hardware-corner.net/qwen3-8-27b-hardware-tests/"},{"hw":"RTX 3090 24 GB","hwId":"rtx3090","toks":66.4,"quant":"Q4_K_XL + MTP","engine":"llama.cpp","by":"thc1006","src":"https://hackmd.io/@thc1006/qwen3-8-27b-speculative-decoding-rtx-3090"},{"hw":"RTX 3090 24 GB","hwId":"rtx3090","toks":40.3,"quant":"Q4_K_S","engine":"llama.cpp (no drafting)","by":"hardware-corner","src":"https://www.hardware-corner.net/qwen3-8-27b-hardware-tests/"},{"hw":"Mac Studio M5 Max 48 GB","hwId":"m5max-36","toks":168,"quant":"NVFP4 + DSpark","engine":"lithos-metal (projection)","by":"LithosAI","src":"https://www.lithosai.com/blog/lithos-metal"},{"hw":"Mac Studio M5 Max 128 GB","hwId":"m5max-36","toks":68,"quant":"MLX 4-bit","engine":"Ollama (MLX runner)","by":"bestllmfor","src":"https://bestllmfor.com/guides/macbook-pro-m5-max-128gb-ai-benchmark"},{"hw":"Mac mini M5 Pro 48 GB","hwId":"m5pro-24","toks":74,"quant":"Splash 4-bit + DFlash2","engine":"Splash","by":"Inco AI (self-reported)","src":"https://github.com/incoai/splash"},{"hw":"Mac mini M4 Pro 48 GB","hwId":"m4pro-24","toks":31.1,"quant":"MLX 8-bit + DSpark","engine":"mlx-dspark","by":"ARahim3","src":"https://github.com/ARahim3/mlx-dspark"},{"hw":"DGX Spark","hwId":"spark","toks":47.9,"quant":"NVFP4 (C=1)","engine":"SGLang","by":"openzeka","src":"https://blog.openzeka.com/en/?p=1977"},{"hw":"2× RTX 5060 Ti 16 GB","hwId":"rtx5060ti","toks":22.5,"quant":"Q4_K_S","engine":"llama.cpp","by":"hardware-corner","src":"https://www.hardware-corner.net/qwen3-8-27b-hardware-tests/"}],"support":{"llamacpp":"yes (since b10450)","vllm":"yes (NVFP4 fits one 32 GB Blackwell)","sglang":"yes (DFlash2/DSpark)","mlx":"yes","ollama":"qwen3.8:27b","exl3":"community EXL3","lithos":"yes (NVFP4 / 4-bit)","splash":"yes","ninfer":"yes","infernix":"yes","q27":"yes"}},{"id":"flash-next","attnFlops":2048,"attnLayers":12,"archMul":0.7,"name":"Qwen3.8-Flash-Next","vendor":"Alibaba Qwen","hf":"Qwen/Qwen3.8-Flash-Next","family":"Qwen3.8","total":125,"active":6,"kind":"moe","layers":48,"kvBytes":27600,"constStateGB":0.15,"tableGB":28.8,"expertWeightFrac":0.93,"expertActiveFrac":0.39,"ctxMax":262144,"released":"2026-08-26","license":"Qwen Community License 1.0","reasoning":"hybrid, on by default","vision":true,"mmprojGB":0.91,"arch":"48 layers: 36 Gated DeltaNet + 12 sparse attention. 512 experts per layer (24,576 in all), top-10 + 1 shared. 125B main + 51B n-gram table + 4B MTP head.","why":"The 125B MoE that spawned Strata, Infernix, Basalt and ds4: only ~6B active, so it decodes like a 6B model once the experts are reachable.","quants":[{"tag":"GSQ-RCO-Coder IQ1_M","gb":61.6,"fmt":"gguf","repo":"ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-Coder-GGUF","note":"half the experts removed; code only; Strata “Coder” (fits 32 GB RAM)"},{"tag":"GSQ-RCO Q2_0","gb":69.7,"fmt":"gguf","repo":"ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF","note":"Strata’s fastest full-expert pack"},{"tag":"UD-IQ1_S","gb":72.55,"fmt":"gguf","repo":"unsloth/Qwen3.8-Flash-Next-GGUF"},{"tag":"UD-Q2_K_XL","gb":78.87,"fmt":"gguf","repo":"unsloth/Qwen3.8-Flash-Next-GGUF"},{"tag":"UD-IQ3_XXS","gb":81.96,"fmt":"gguf","repo":"unsloth/Qwen3.8-Flash-Next-GGUF"},{"tag":"GSQ-RCO IQ3_S","gb":87,"fmt":"gguf","repo":"ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF","note":"Strata’s “best” pack"},{"tag":"UD-Q3_K_XL","gb":89.99,"fmt":"gguf","repo":"unsloth/Qwen3.8-Flash-Next-GGUF"},{"tag":"UD-IQ4_XS","gb":93.68,"fmt":"gguf","repo":"unsloth/Qwen3.8-Flash-Next-GGUF"},{"tag":"UD-Q4_K_XL","gb":111.33,"fmt":"gguf","repo":"unsloth/Qwen3.8-Flash-Next-GGUF","note":"the usual “full quality” pick (93% top-1 agreement with Q8_0)"},{"tag":"MLX-4bit","gb":111.55,"fmt":"mlx","repo":"mlx-community/Qwen3.8-Flash-Next-4bit"},{"tag":"NVFP4","gb":132.7,"fmt":"nvfp4","tableGB":53.7,"repo":"nvidia/Qwen3.8-Flash-Next-NVFP4","note":"NVIDIA checkpoint; Infernix keeps experts in pinned RAM and the 52 GB n-gram volume on NVMe"},{"tag":"Q8_0","gb":188.23,"fmt":"gguf","repo":"unsloth/Qwen3.8-Flash-Next-GGUF"}],"anchors":[{"hw":"RTX 5070 12 GB + 64 GB RAM","toks":94,"quant":"GSQ-RCO Q2_0 + MTP","engine":"Strata","by":"Strata README","src":"https://github.com/Niko1221/Strata"},{"hw":"RTX 5070 12 GB + 64 GB RAM","toks":53,"quant":"GSQ-RCO IQ3_S + MTP","engine":"Strata","by":"Strata README","src":"https://github.com/Niko1221/Strata"},{"hw":"RX 9070 XT 16 GB + 47 GB RAM","hwId":"rx9070xt","toks":60,"quant":"GSQ-RCO Q2_0 + MTP","engine":"Strata","by":"Strata README","src":"https://github.com/Niko1221/Strata"},{"hw":"RTX 5090 32 GB + 96 GB DDR5 + NVMe","hwId":"rtx5090","toks":139.8,"quant":"NVFP4 Dense8 + MTP","engine":"Infernix","by":"Infernix README","src":"https://github.com/Wallawalla47/Infernix"},{"hw":"RTX 5090 32 GB + 96 GB DDR5","hwId":"rtx5090","toks":97.6,"quant":"UD-Q4_K_XL + MTP","engine":"Strata 0.1.42","by":"Infernix README (same machine)","src":"https://github.com/Wallawalla47/Infernix"},{"hw":"RTX 4090 + EPYC host RAM","hwId":"rtx4090","toks":39.4,"quant":"Q4_0 + 6.5 GB expert cache","engine":"llama.cpp --moe-cache-mib","by":"llama.cpp PR #29887","src":"https://github.com/ggml-org/llama.cpp/pull/29887"},{"hw":"RTX 5070 Ti 16 GB + 128 GB DDR5","hwId":"rtx5070ti","toks":14.9,"quant":"UD-Q4_K_XL","engine":"llama.cpp","by":"unsloth discussion","src":"https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF/discussions/46"},{"hw":"RTX 5060 Ti 16 GB + 128 GB DDR5","hwId":"rtx5060ti","toks":30.6,"quant":"UD-IQ4_XS","engine":"llama.cpp","by":"llama.cpp discussion","src":"https://github.com/ggml-org/llama.cpp/discussions/27950"},{"hw":"RTX 3090 24 GB + 128 GB DDR4","hwId":"rtx3090","toks":22,"quant":"UD-Q4_K_XL (-cmoe)","engine":"llama.cpp","by":"llama.cpp discussion","src":"https://github.com/ggml-org/llama.cpp/discussions/27864"},{"hw":"Strix Halo 128 GB","hwId":"strix-128","toks":47,"quant":"UD-IQ4_XS + MTP","engine":"llama.cpp ROCm","by":"llama.cpp discussion","src":"https://github.com/ggml-org/llama.cpp/discussions/28512"},{"hw":"DGX Spark","hwId":"spark","toks":25,"quant":"UD-Q4_K_XL","engine":"llama.cpp","by":"NVIDIA forum","src":"https://forums.developer.nvidia.com/t/qwen3-8-flash-next-ud-q4-k-xl-gguf-on-dgx-spark-with-llama-cpp-gpu-experts-ple-n-gram-table-streamed-from-disk-25-tok-s-up-to-1m-context/381720"},{"hw":"Mac Studio M3 Ultra","toks":31.4,"quant":"MLX 4-bit + MTP","engine":"oMLX","by":"Vontra model card","src":"https://huggingface.co/Vontra/Qwen3.8-Flash-Next-MLX-4bit-MTP"}],"support":{"llamacpp":"yes (qwen4exp since b10660; n-gram table lazily mmap’d)","vllm":"needs ~130 GB VRAM (datacenter)","sglang":"datacenter","mlx":"yes (111 GB)","ollama":"qwen3.8-flash-next:125b-mlx (Mac only)","strata":"yes","basalt":"yes","infernix":"yes","ds4":"yes","exl3":"yes"}},{"id":"qwen36-35b","attnFlops":16384,"attnLayers":10,"archMul":0.95,"name":"Qwen3.6-35B-A3B","vendor":"Alibaba Qwen","hf":"Qwen/Qwen3.6-35B-A3B","family":"Qwen3.6","total":35.95,"active":3,"kind":"moe","layers":40,"kvBytes":20480,"constStateGB":0.1,"expertWeightFrac":0.86,"expertActiveFrac":0.34,"ctxMax":262144,"released":"2026-04-15","license":"Apache-2.0","reasoning":"hybrid, on by default","vision":true,"mmprojGB":0.9,"arch":"40 layers: 30 Gated DeltaNet + 10 gated attention (2 KV heads × 256). 256 experts, top-8 + 1 shared.","why":"The reference 2026 small MoE. 22 GB at Q4, so it wants a 32 GB box; LFM2.5-24B-A2B does similar agentic work in 14.5 GB.","quants":[{"tag":"UD-IQ2_M","gb":11.52,"fmt":"gguf","repo":"unsloth/Qwen3.6-35B-A3B-GGUF"},{"tag":"UD-Q2_K_XL","gb":12.29,"fmt":"gguf","repo":"unsloth/Qwen3.6-35B-A3B-GGUF"},{"tag":"UD-IQ3_XXS","gb":13.21,"fmt":"gguf","repo":"unsloth/Qwen3.6-35B-A3B-GGUF"},{"tag":"UD-IQ3_S","gb":13.68,"fmt":"gguf","repo":"unsloth/Qwen3.6-35B-A3B-GGUF"},{"tag":"UD-IQ4_XS","gb":17.73,"fmt":"gguf","repo":"unsloth/Qwen3.6-35B-A3B-GGUF"},{"tag":"MLX-4bit","gb":20.4,"fmt":"mlx","repo":"mlx-community/Qwen3.6-35B-A3B-4bit"},{"tag":"UD-Q4_K_M","gb":22.13,"fmt":"gguf","repo":"unsloth/Qwen3.6-35B-A3B-GGUF"},{"tag":"UD-Q4_K_XL","gb":22.36,"fmt":"gguf","repo":"unsloth/Qwen3.6-35B-A3B-GGUF"},{"tag":"NVFP4","gb":23.42,"fmt":"nvfp4","repo":"nvidia/Qwen3.6-35B-A3B-NVFP4"},{"tag":"UD-Q5_K_M","gb":26.46,"fmt":"gguf","repo":"unsloth/Qwen3.6-35B-A3B-GGUF"},{"tag":"UD-Q6_K","gb":29.31,"fmt":"gguf","repo":"unsloth/Qwen3.6-35B-A3B-GGUF"},{"tag":"Q8_0","gb":36.9,"fmt":"gguf","repo":"unsloth/Qwen3.6-35B-A3B-GGUF"},{"tag":"FP8","gb":37.49,"fmt":"fp8","repo":"Qwen/Qwen3.6-35B-A3B-FP8"},{"tag":"BF16","gb":69.38,"fmt":"bf16","repo":"Qwen/Qwen3.6-35B-A3B"}],"anchors":[{"hw":"RTX 3090 24 GB (all in VRAM)","hwId":"rtx3090","toks":157.7,"quant":"UD-Q4_K_M","engine":"llama.cpp","by":"insiderllm","src":"https://insiderllm.com/guides/best-way-run-qwen-3-6-35b-moe-locally/"},{"hw":"RTX 3060 12 GB + 32 GB DDR4 (--n-cpu-moe 24)","hwId":"rtx3060-tower","toks":38.9,"quant":"UD-Q4_K_M","engine":"llama.cpp","by":"insiderllm","src":"https://insiderllm.com/guides/best-way-run-qwen-3-6-35b-moe-locally/"},{"hw":"Strix Halo 128 GB (ROCm)","hwId":"strix-128","toks":69.4,"quant":"Q4_K_M + MTP n=3","engine":"llama.cpp","by":"calebcoffie","src":"https://calebcoffie.com/blog/benchmarking-llama-cpp-mtp-on-strix-halo"},{"hw":"Strix Halo 128 GB (Vulkan)","hwId":"strix-128","toks":63,"quant":"Q4_K_M","engine":"llama.cpp","by":"visorcraft","src":"https://github.com/visorcraft/strix-halo-llm-perf"},{"hw":"Minisforum UM790 Pro (7940HS, 780M Vulkan)","hwId":"ser8-32","toks":20.5,"quant":"Q8_0","engine":"llama.cpp","by":"llama.cpp discussion","src":"https://github.com/ggml-org/llama.cpp/discussions/27519"},{"hw":"Core Ultra X7 358H (Arc B390 Vulkan)","hwId":"evo-t2s","toks":33,"quant":"Q4_K_M","engine":"llama.cpp","by":"grigio.org","src":"https://grigio.org/benchmarking-llama-cpp-backends-on-intel-panther-lake-vulkan-vs-sycl-vs-openvino-vs-cpu/"},{"hw":"Core Ultra X7 358H (CPU only)","hwId":"evo-t2s","toks":19.4,"quant":"Q4_K_M","engine":"llama.cpp","by":"grigio.org","src":"https://grigio.org/benchmarking-llama-cpp-backends-on-intel-panther-lake-vulkan-vs-sycl-vs-openvino-vs-cpu/"},{"hw":"Mac Studio M5 Max 128 GB","hwId":"m5max-36","toks":167,"quant":"MLX 4-bit","engine":"Ollama (MLX runner)","by":"bestllmfor","src":"https://bestllmfor.com/guides/macbook-pro-m5-max-128gb-ai-benchmark"},{"hw":"Mac mini M5 Pro 48 GB","hwId":"m5pro-24","toks":210,"quant":"Splash pack","engine":"Splash","by":"Inco AI (self-reported)","src":"https://github.com/incoai/splash"}],"support":{"llamacpp":"yes","vllm":"yes","sglang":"yes","mlx":"yes","ollama":"yes","ninfer":"yes","splash":"yes","lithos":"experimental","q36":"yes"}},{"id":"gemma4-26b","attnFlops":16384,"attnLayers":5,"archMul":0.8,"name":"Gemma 4 26B-A4B","vendor":"Google","hf":"google/gemma-4-26B-A4B-it","family":"Gemma 4","total":25.8,"active":3.8,"kind":"moe","layers":30,"kvBytes":10240,"constStateGB":0.1,"expertWeightFrac":0.85,"expertActiveFrac":0.38,"ctxMax":262144,"released":"2026-04-02","license":"Apache-2.0","reasoning":"configurable","vision":true,"mmprojGB":1.19,"arch":"30 layers: 25 sliding-window (1024) + 5 global attention (K=V shared). 128 experts + 1 shared, top-8.","why":"Official QAT 4-bit GGUF (14.4 GB) at near-8-bit quality, and a KV cache even smaller than LFM’s.","quants":[{"tag":"UD-IQ2_M","gb":10.01,"fmt":"gguf","repo":"unsloth/gemma-4-26B-A4B-it-GGUF"},{"tag":"UD-Q2_K_XL","gb":10.55,"fmt":"gguf","repo":"unsloth/gemma-4-26B-A4B-it-GGUF"},{"tag":"UD-IQ3_S","gb":11.29,"fmt":"gguf","repo":"unsloth/gemma-4-26B-A4B-it-GGUF"},{"tag":"UD-IQ4_XS","gb":13.6,"fmt":"gguf","repo":"unsloth/gemma-4-26B-A4B-it-GGUF"},{"tag":"QAT UD-Q4_K_XL","gb":14.25,"fmt":"gguf","repo":"unsloth/gemma-4-26B-A4B-it-qat-GGUF","qat":true},{"tag":"QAT Q4_0","gb":14.44,"fmt":"gguf","repo":"google/gemma-4-26B-A4B-it-qat-q4_0-gguf","qat":true,"note":"Google’s official QAT GGUF"},{"tag":"MLX-4bit","gb":15.37,"fmt":"mlx","repo":"mlx-community/gemma-4-26B-A4B-it-4bit"},{"tag":"UD-Q4_K_M","gb":16.95,"fmt":"gguf","repo":"unsloth/gemma-4-26B-A4B-it-GGUF"},{"tag":"NVFP4","gb":18.79,"fmt":"nvfp4","repo":"nvidia/Gemma-4-26B-A4B-NVFP4"},{"tag":"UD-Q5_K_M","gb":21.15,"fmt":"gguf","repo":"unsloth/gemma-4-26B-A4B-it-GGUF"},{"tag":"UD-Q6_K","gb":23.17,"fmt":"gguf","repo":"unsloth/gemma-4-26B-A4B-it-GGUF"},{"tag":"Q8_0","gb":26.86,"fmt":"gguf","repo":"unsloth/gemma-4-26B-A4B-it-GGUF"},{"tag":"FP8","gb":28.64,"fmt":"fp8","repo":"RedHatAI/gemma-4-26B-A4B-it-FP8-dynamic"},{"tag":"BF16","gb":50.51,"fmt":"bf16","repo":"google/gemma-4-26B-A4B-it"}],"anchors":[{"hw":"RTX 4090 24 GB","hwId":"rtx4090","toks":250,"quant":"UD-Q4_K_XL","engine":"llama.cpp","by":"timharbakon","src":"https://timharbakon.com/qwen3-8-27b-vs-gemma4-26b-rtx-4090-benchmark/"},{"hw":"RTX 3090 24 GB","hwId":"rtx3090","toks":119.4,"quant":"Q4_K","engine":"llama.cpp","by":"hardware-corner","src":"https://www.hardware-corner.net/gpu-llm-benchmarks/rtx-3090/"},{"hw":"RTX 5090 32 GB","hwId":"rtx5090","toks":199.6,"quant":"EXL3 3.10 bpw","engine":"ExLlamaV3","by":"ExLlamaV3 v1.5.0 notes","src":"https://github.com/turboderp-org/exllamav3/releases/tag/v1.5.0"},{"hw":"Mac mini M4 16 GB","hwId":"m4-16","toks":31,"quant":"UD 3-bit MLX","engine":"MLX","by":"community (Apr 2026)","src":"https://www.popularai.org/p/mac-mini-llm-performance-in-2026"},{"hw":"DGX Spark","hwId":"spark","toks":47.9,"quant":"NVFP4 + MTP","engine":"vLLM","by":"classmethod","src":"https://dev.classmethod.jp/en/articles/dgx-spark-gemma4-mtp-multi-token-prediction-bench"},{"hw":"8.6 GB VRAM via expert cache (GPU unnamed)","toks":14.8,"quant":"W4A16 + --moe-expert-cache-size","engine":"vLLM PR #37190","by":"vLLM PR tester","src":"https://github.com/vllm-project/vllm/pull/37190"}],"support":{"llamacpp":"yes (+MTP drafts)","vllm":"yes (W4A16 / NVFP4, MTP)","sglang":"yes","mlx":"yes","ollama":"yes (gemma4)","exl3":"yes","tensorfold":"yes"}},{"id":"gemma4-31b","attnFlops":32768,"attnLayers":10,"archMul":0.9,"name":"Gemma 4 31B","vendor":"Google","hf":"google/gemma-4-31B-it","family":"Gemma 4","total":31.27,"active":31.27,"kind":"dense","layers":60,"kvBytes":40960,"constStateGB":0.45,"ctxMax":262144,"released":"2026-04-02","license":"Apache-2.0","reasoning":"configurable","vision":true,"mmprojGB":1.2,"arch":"60 layers: 50 sliding + 10 global attention, dense.","why":"The dense Gemma; needs a 24 GB GPU or a 48 GB Mac to be pleasant.","quants":[{"tag":"UD-Q2_K_XL","gb":11.77,"fmt":"gguf","repo":"unsloth/gemma-4-31B-it-GGUF"},{"tag":"IQ4_XS","gb":16.37,"fmt":"gguf","repo":"unsloth/gemma-4-31B-it-GGUF"},{"tag":"Q4_K_M","gb":18.32,"fmt":"gguf","repo":"unsloth/gemma-4-31B-it-GGUF"},{"tag":"MLX-4bit","gb":18.41,"fmt":"mlx","repo":"mlx-community/gemma-4-31B-it-4bit"},{"tag":"UD-Q4_K_XL","gb":18.82,"fmt":"gguf","repo":"unsloth/gemma-4-31B-it-GGUF"},{"tag":"Q5_K_M","gb":21.66,"fmt":"gguf","repo":"unsloth/gemma-4-31B-it-GGUF"},{"tag":"Q6_K","gb":25.2,"fmt":"gguf","repo":"unsloth/gemma-4-31B-it-GGUF"},{"tag":"Q8_0","gb":32.64,"fmt":"gguf","repo":"unsloth/gemma-4-31B-it-GGUF"},{"tag":"BF16","gb":62.58,"fmt":"bf16","repo":"google/gemma-4-31B-it"}],"anchors":[{"hw":"RTX 3090 24 GB","hwId":"rtx3090","toks":34.7,"quant":"Q4_K","engine":"llama.cpp","by":"hardware-corner","src":"https://www.hardware-corner.net/gpu-llm-benchmarks/rtx-3090/"},{"hw":"2× RTX 5070 Ti","hwId":"rtx5070ti","toks":66,"quant":"Q4 + MTP","engine":"llama.cpp","by":"llama.cpp PR #23398","src":"https://github.com/ggml-org/llama.cpp/pull/23398"}],"support":{"llamacpp":"yes","vllm":"yes","mlx":"yes","ollama":"yes","exl3":"yes"}},{"id":"gemma4-12b","attnFlops":16384,"attnLayers":8,"archMul":0.9,"name":"Gemma 4 12B","vendor":"Google","hf":"google/gemma-4-12B-it","family":"Gemma 4","total":11.96,"active":11.96,"kind":"dense","layers":48,"kvBytes":8192,"constStateGB":0.3,"ctxMax":262144,"released":"2026-06-03","license":"Apache-2.0","reasoning":"configurable","vision":true,"mmprojGB":0,"arch":"48 layers: 40 sliding + 8 global, dense, encoder-free multimodal (vision + audio).","why":"Google pitches it at a 16 GB laptop; 7 GB at QAT 4-bit.","quants":[{"tag":"UD-Q2_K_XL","gb":4.66,"fmt":"gguf","repo":"unsloth/gemma-4-12B-it-GGUF"},{"tag":"IQ4_XS","gb":6.38,"fmt":"gguf","repo":"unsloth/gemma-4-12B-it-GGUF"},{"tag":"QAT Q4_0","gb":6.98,"fmt":"gguf","repo":"google/gemma-4-12B-it-qat-q4_0-gguf","qat":true},{"tag":"Q4_K_M","gb":7.12,"fmt":"gguf","repo":"unsloth/gemma-4-12B-it-GGUF"},{"tag":"UD-Q4_K_XL","gb":7.37,"fmt":"gguf","repo":"unsloth/gemma-4-12B-it-GGUF"},{"tag":"Q5_K_M","gb":8.41,"fmt":"gguf","repo":"unsloth/gemma-4-12B-it-GGUF"},{"tag":"Q6_K","gb":9.79,"fmt":"gguf","repo":"unsloth/gemma-4-12B-it-GGUF"},{"tag":"Q8_0","gb":12.67,"fmt":"gguf","repo":"unsloth/gemma-4-12B-it-GGUF"},{"tag":"BF16","gb":23.95,"fmt":"bf16","repo":"google/gemma-4-12B-it"}],"anchors":[{"hw":"RTX 4070 Ti Super","toks":118,"quant":"Q6_K + MTP","engine":"llama.cpp","by":"llama.cpp PR #23398","src":"https://github.com/ggml-org/llama.cpp/pull/23398"},{"hw":"Mac mini M4 Pro 48 GB","hwId":"m4pro-24","toks":59.8,"quant":"MLX + DSpark","engine":"mlx-dspark","by":"ARahim3","src":"https://github.com/ARahim3/mlx-dspark"}],"support":{"llamacpp":"yes","vllm":"yes","mlx":"yes","ollama":"yes"}},{"id":"gemma4-e4b","attnFlops":8192,"attnLayers":7,"archMul":0.9,"name":"Gemma 4 E4B","vendor":"Google","hf":"google/gemma-4-E4B-it","family":"Gemma 4","total":8,"active":4.5,"kind":"dense","layers":42,"kvBytes":14336,"constStateGB":0.1,"ctxMax":131072,"released":"2026-04-02","license":"Apache-2.0","reasoning":"configurable","vision":true,"mmprojGB":0.99,"arch":"42 layers (35 sliding + 7 global) with per-layer embeddings; 4.5B effective.","why":"Phone/Pi-class multimodal model; 5 GB at 4-bit.","quants":[{"tag":"UD-Q2_K_XL","gb":3.76,"fmt":"gguf","repo":"unsloth/gemma-4-E4B-it-GGUF"},{"tag":"IQ4_XS","gb":4.72,"fmt":"gguf","repo":"unsloth/gemma-4-E4B-it-GGUF"},{"tag":"Q4_K_M","gb":4.98,"fmt":"gguf","repo":"unsloth/gemma-4-E4B-it-GGUF"},{"tag":"QAT Q4_0","gb":5.15,"fmt":"gguf","repo":"google/gemma-4-E4B-it-qat-q4_0-gguf","qat":true},{"tag":"Q6_K","gb":7.07,"fmt":"gguf","repo":"unsloth/gemma-4-E4B-it-GGUF"},{"tag":"MLX-4bit","gb":6.86,"fmt":"mlx","repo":"mlx-community/gemma-4-E4B-it-4bit"},{"tag":"Q8_0","gb":8.19,"fmt":"gguf","repo":"unsloth/gemma-4-E4B-it-GGUF"},{"tag":"BF16","gb":16.02,"fmt":"bf16","repo":"google/gemma-4-E4B-it"}],"anchors":[{"hw":"Raspberry Pi 5 8 GB (E2B sibling)","hwId":"pi5-16","toks":10,"quant":"Q4","engine":"Ollama","by":"dev.to (low confidence)","src":"https://dev.to/alanwest/gemma-4-runs-on-a-raspberry-pi-i-tested-it-56c5"}],"support":{"llamacpp":"yes","ollama":"yes","mlx":"yes"}},{"id":"gemma4-e2b","attnFlops":8192,"attnLayers":7,"archMul":0.9,"name":"Gemma 4 E2B","vendor":"Google","hf":"google/gemma-4-E2B-it","family":"Gemma 4","total":5.1,"active":2.3,"kind":"dense","layers":35,"kvBytes":7168,"constStateGB":0.05,"ctxMax":131072,"released":"2026-04-02","license":"Apache-2.0","reasoning":"configurable","vision":true,"mmprojGB":0.7,"arch":"35 layers (28 sliding + 7 global); 2.3B effective.","why":"The Pi 5 model: 3 GB at 4-bit, 8–12 tok/s on an 8 GB Pi.","quants":[{"tag":"UD-Q2_K_XL","gb":2.4,"fmt":"gguf","repo":"unsloth/gemma-4-E2B-it-GGUF"},{"tag":"IQ4_XS","gb":2.98,"fmt":"gguf","repo":"unsloth/gemma-4-E2B-it-GGUF"},{"tag":"Q4_K_M","gb":3.11,"fmt":"gguf","repo":"unsloth/gemma-4-E2B-it-GGUF"},{"tag":"MLX-4bit","gb":4.34,"fmt":"mlx","repo":"mlx-community/gemma-4-E2B-it-4bit"},{"tag":"Q6_K","gb":4.5,"fmt":"gguf","repo":"unsloth/gemma-4-E2B-it-GGUF"},{"tag":"Q8_0","gb":5.05,"fmt":"gguf","repo":"unsloth/gemma-4-E2B-it-GGUF"},{"tag":"BF16","gb":10.28,"fmt":"bf16","repo":"google/gemma-4-E2B-it"}],"anchors":[{"hw":"Raspberry Pi 5 8 GB","hwId":"pi5-16","toks":10,"quant":"Q4","engine":"Ollama","by":"dev.to (low confidence)","src":"https://dev.to/alanwest/gemma-4-runs-on-a-raspberry-pi-i-tested-it-56c5"}],"support":{"llamacpp":"yes","ollama":"yes","mlx":"yes"}},{"id":"nemotron35","attnFlops":16384,"attnLayers":6,"archMul":1,"name":"Nemotron 3.5 Lightning 30B-A3B","vendor":"NVIDIA","hf":"nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16","family":"Nemotron","total":31.6,"active":3,"kind":"moe","layers":52,"kvBytes":6144,"constStateGB":0.1,"expertWeightFrac":0.8,"expertActiveFrac":0.6,"ctxMax":262144,"released":"2026-08-11","license":"OpenMDW License v1.1","reasoning":"on by default","vision":false,"mmprojGB":0,"arch":"52 layers: 23 Mamba-2 + 23 MoE + 6 attention (2 KV heads × 128). 128 experts + 1 shared, top-6.","why":"Tiny KV cache (6 KB/token) but the GGUF experts stay ≥4-bit, so no quant goes below ~19 GB.","quants":[{"tag":"Q4_0","gb":18.9,"fmt":"gguf","repo":"ggml-org/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF"},{"tag":"IQ4_XS","gb":18.92,"fmt":"gguf","repo":"bartowski/nvidia_NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF"},{"tag":"MLX-4bit","gb":17.78,"fmt":"mlx","repo":"mlx-community/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-4bit"},{"tag":"UD-IQ4_NL","gb":21.24,"fmt":"gguf","repo":"unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF"},{"tag":"NVFP4","gb":21.56,"fmt":"nvfp4","repo":"nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-NVFP4"},{"tag":"UD-Q4_K_XL","gb":25.51,"fmt":"gguf","repo":"unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF"},{"tag":"Q5_K_M","gb":26.96,"fmt":"gguf","repo":"bartowski/nvidia_NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF"},{"tag":"Q8_0","gb":35,"fmt":"gguf","repo":"unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF"},{"tag":"BF16","gb":65.85,"fmt":"bf16","repo":"nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16"}],"anchors":[{"hw":"RTX 5090 32 GB","hwId":"rtx5090","toks":123,"quant":"Q4_K_M","engine":"Ollama","by":"kgptalkie","src":"https://kgptalkie.com/tutorials/llm-benchmarking/nemotron-3-5-lightning-vs-muse-glimmer-30b"},{"hw":"DGX Spark","hwId":"spark","toks":80,"quant":"Q4_K_M + MTP","engine":"Ollama","by":"kubesimplify","src":"https://blog.kubesimplify.com/nemotron-3-5-lightning-on-dgx-spark"},{"hw":"Strix Halo 128 GB (Vulkan)","hwId":"strix-128","toks":85.6,"quant":"custom ROCm FP4 ~4.4 bpw","engine":"llama.cpp","by":"julianmb","src":"https://github.com/julianmb/nemotron-3.5-30b-a3b-rocmfp4"}],"support":{"llamacpp":"yes","vllm":"yes (NVFP4 + DSpark)","sglang":"yes","mlx":"yes","ollama":"yes"}},{"id":"lfm25-1.2b","attnFlops":8192,"attnLayers":6,"archMul":1.15,"name":"LFM2.5-1.2B","vendor":"Liquid AI","hf":"LiquidAI/LFM2.5-1.2B-Instruct","family":"LFM2.5","total":1.17,"active":1.17,"kind":"dense","layers":16,"kvBytes":12288,"constStateGB":0.01,"ctxMax":128000,"released":"2026-01-06","license":"LFM Open License v1.0","reasoning":"no","vision":false,"mmprojGB":0,"arch":"16 layers (10 conv + 6 GQA), dense.","why":"The always-on helper for a Pi or a phone; 0.7 GB at 4-bit.","quants":[{"tag":"Q4_0","gb":0.7,"fmt":"gguf","repo":"LiquidAI/LFM2.5-1.2B-Instruct-GGUF"},{"tag":"Q4_K_M","gb":0.73,"fmt":"gguf","repo":"LiquidAI/LFM2.5-1.2B-Instruct-GGUF"},{"tag":"MLX-4bit","gb":0.66,"fmt":"mlx","repo":"LiquidAI/LFM2.5-1.2B-Instruct-MLX-4bit"},{"tag":"Q8_0","gb":1.25,"fmt":"gguf","repo":"LiquidAI/LFM2.5-1.2B-Instruct-GGUF"},{"tag":"BF16","gb":2.34,"fmt":"bf16","repo":"LiquidAI/LFM2.5-1.2B-Instruct"}],"anchors":[],"support":{"llamacpp":"yes","ollama":"yes","mlx":"yes"}}],"hardware":[{"id":"pi5-16","group":"Single-board computers","name":"Raspberry Pi 5 · 16 GB","cpu":"BCM2712, 4× Cortex-A76","ram":16,"ramBw":17,"ramBwEff":17,"cpuClass":"sbc","gpu":null,"unified":false,"os":"linux","priceInr":[29194,34449],"priceNote":"robu.in / Silverline, Oct 2026 (three price hikes in 2026)","pflopsCpu":0.07,"notes":"LPDDR4X-4267, 32-bit bus. Qwen3-30B-A3B at 2.7 bpw runs ~8 tok/s on it."},{"id":"n150-16","group":"Entry mini PCs","name":"N150 mini PC · 16 GB DDR4 (GMKtec G3 Plus / Beelink S13 class)","cpu":"Intel N150, 4 cores","ram":16,"ramBw":25.6,"ramBwEff":25.6,"cpuClass":"small","gpu":null,"unified":false,"os":"windows","priceInr":[28699,34299],"priceNote":"Amazon.in, 12 Oct 2026","pflopsCpu":0.15,"notes":"Single-channel SO-DIMM; DDR5-4800 variants reach 38 GB/s. 16 GB is the practical cap."},{"id":"ser8-32","group":"Mid mini PCs","name":"Ryzen 7 8845HS mini PC · 32 GB DDR5-5600 (Beelink SER8 / GMKtec K8 Plus)","cpu":"Ryzen 7 8845HS, 8 cores","ram":32,"ramBw":89.6,"ramBwEff":85,"cpuClass":"desktop","gpu":{"kind":"igpu","vendor":"amd","gen":"rdna3","name":"Radeon 780M (Vulkan)","vram":0,"vramBw":0},"unified":false,"os":"windows","priceInr":[105438,124766],"priceUsd":[749,920],"priceNote":"Smartprix 13 Oct 2026 (inflated); US $749–920","pflopsGpu":2.2,"pflopsCpu":0.6,"notes":"Dual-channel SO-DIMM, upgradable to 64 GB. The iGPU mainly speeds up prompt reading."},{"id":"ser8-64","group":"Mid mini PCs","name":"Ryzen 7 8845HS mini PC · 64 GB DDR5-5600 (same box, RAM upgraded)","cpu":"Ryzen 7 8845HS, 8 cores","ram":64,"ramBw":89.6,"ramBwEff":85,"cpuClass":"desktop","gpu":{"kind":"igpu","vendor":"amd","gen":"rdna3","name":"Radeon 780M (Vulkan)","vram":0,"vramBw":0},"unified":false,"os":"windows","priceInr":[130000,155000],"priceNote":"estimate: SER8 + 2×32 GB DDR5 SO-DIMM at Oct 2026 RAM prices","estimate":true,"pflopsGpu":2.2,"pflopsCpu":0.6,"notes":"Same bandwidth as 32 GB; buys room for Q8 models and long contexts, not speed."},{"id":"aix1-64","group":"Mid mini PCs","name":"Ryzen AI 9 HX 370 mini PC · 64 GB LPDDR5X-7500 (Minisforum AI X1 Pro / Beelink SER9)","cpu":"Ryzen AI 9 HX 370, 12 cores","ram":64,"ramBw":120,"ramBwEff":110,"cpuClass":"desktop","gpu":{"kind":"igpu","vendor":"amd","gen":"rdna3.5","name":"Radeon 890M (Vulkan/ROCm)","vram":0,"vramBw":0},"unified":false,"os":"windows","priceUsd":[1199,1199],"priceNote":"US $1,199 (Oct 2026); no India listing found","pflopsGpu":3,"pflopsCpu":0.8,"notes":"Soldered memory, 128-bit LPDDR5X. XDNA2 NPU usable through AMD Lemonade / FastFlowLM."},{"id":"evo-t2s","group":"Mid mini PCs","name":"Core Ultra X7 358H (Panther Lake) mini PC · 64 GB LPDDR5X-8533 (GMKtec EVO-T2S)","cpu":"Core Ultra X7 358H, 16 cores","ram":64,"ramBw":137,"ramBwEff":120,"cpuClass":"desktop","gpu":{"kind":"igpu","vendor":"intel","gen":"xe3","name":"Arc B390 iGPU (Vulkan/SYCL)","vram":0,"vramBw":0},"unified":false,"os":"windows","priceUsd":[2099,2099],"priceNote":"US $2,099 (Aug 2026)","pflopsGpu":4,"pflopsCpu":0.9,"notes":"Measured: Qwen3.6-35B-A3B Q4_K_M at 33 tok/s on Vulkan, 19 tok/s CPU-only (grigio.org)."},{"id":"strix-64","group":"Unified-memory boxes","name":"Ryzen AI Max+ 395 (Strix Halo) · 64 GB (GMKtec EVO-X2 / Bosgame M5)","cpu":"Ryzen AI Max+ 395, 16 cores","ram":64,"ramBw":256,"ramBwEff":215,"cpuClass":"apu","gpu":{"kind":"apu","vendor":"amd","gen":"rdna3.5","name":"Radeon 8060S (40 CU, ROCm/Vulkan)","vram":0,"vramBw":0},"unified":true,"os":"windows","priceUsd":[2200,2200],"priceNote":"US $2,200 (Oct 2026); India listing not found","pflopsGpu":7,"pflopsCpu":1.2,"notes":"256-bit LPDDR5X-8000, ~212–215 GB/s measured. Up to ~52 GB assignable to the GPU on this SKU."},{"id":"strix-128","group":"Unified-memory boxes","name":"Ryzen AI Max+ 395 (Strix Halo) · 128 GB (GMKtec EVO-X2 / Beelink GTR9 Pro / Framework Desktop)","cpu":"Ryzen AI Max+ 395, 16 cores","ram":128,"ramBw":256,"ramBwEff":215,"cpuClass":"apu","gpu":{"kind":"apu","vendor":"amd","gen":"rdna3.5","name":"Radeon 8060S (40 CU, ROCm/Vulkan)","vram":0,"vramBw":0},"unified":true,"os":"linux","priceInr":[486793,558884],"priceNote":"Amazon.in, 12 Oct 2026 (was ~₹2L at launch; DRAM surge)","pflopsGpu":7,"pflopsCpu":1.2,"notes":"Runs Qwen3.8-Flash-Next UD-IQ4_XS and LFM2.5-24B-A2B at 114 tok/s. ~110 GB usable by the GPU on Linux."},{"id":"spark","group":"Unified-memory boxes","name":"NVIDIA DGX Spark · 128 GB (GB10; ASUS GX10 / Dell / HP / Lenovo clones)","cpu":"20-core Arm + Blackwell GPU","ram":128,"ramBw":273,"ramBwEff":240,"cpuClass":"apu","gpu":{"kind":"apu","vendor":"nvidia","gen":"gb10","blackwell":true,"name":"GB10 Blackwell (CUDA 13, NVFP4)","vram":0,"vramBw":0},"unified":true,"os":"linux","priceInr":[549990,799000],"priceNote":"Amazon.in / onlinestpl, Oct 2026; US list $4,699 (64 GB SKU $4,999 launched Oct 2026)","pflopsGpu":20,"pflopsCpu":1,"notes":"Same decode class as Strix Halo but 2–4× the prompt speed and the full CUDA stack (vLLM, SGLang, NVFP4)."},{"id":"m4-16","group":"Apple","name":"Mac mini M4 · 16 GB","cpu":"Apple M4 (10-core GPU)","ram":16,"ramBw":120,"ramBwEff":120,"cpuClass":"apple","appleGen":4,"gpu":{"kind":"apple","vendor":"apple","gen":"m4","name":"M4 GPU (Metal/MLX)","vram":0,"vramBw":0},"unified":true,"os":"macos","priceInr":[50359,59900],"priceNote":"Flipkart ₹50,359 / Amazon.in ₹59,900, 13 Oct 2026 (2024 model, still on sale)","pflopsGpu":2.5,"pflopsCpu":0.5,"notes":"Cheapest unified-memory bandwidth in India. macOS lets the GPU wire ~10.7 GB by default; raise iogpu.wired_limit_mb for ~12–13 GB."},{"id":"m4-24","group":"Apple","name":"Mac mini M4 · 24 GB","cpu":"Apple M4 (10-core GPU)","ram":24,"ramBw":120,"ramBwEff":120,"cpuClass":"apple","appleGen":4,"gpu":{"kind":"apple","vendor":"apple","gen":"m4","name":"M4 GPU (Metal/MLX)","vram":0,"vramBw":0},"unified":true,"os":"macos","priceInr":[142900,142900],"priceNote":"Reliance Digital, post-June-2026 price rise","pflopsGpu":2.5,"pflopsCpu":0.5,"notes":"Room for a 4-bit 24B-A2B plus context."},{"id":"m6-16","group":"Apple","name":"Mac mini M6 · 16 GB (Sept 2026)","cpu":"Apple M6 (12-core GPU)","ram":16,"ramBw":153,"ramBwEff":153,"cpuClass":"apple","appleGen":6,"gpu":{"kind":"apple","vendor":"apple","gen":"m6","name":"M6 GPU (Metal/MLX)","vram":0,"vramBw":0},"unified":true,"os":"macos","priceInr":[93990,99900],"priceNote":"Apple India ₹99,900; Smartprix ₹93,990 (Oct 2026)","pflopsGpu":4,"pflopsCpu":0.7,"notes":"Apple skipped a plain-M5 mini: the 2026 line is M6 and M5 Pro."},{"id":"m6-24","group":"Apple","name":"Mac mini M6 · 24 GB (Sept 2026)","cpu":"Apple M6 (12-core GPU)","ram":24,"ramBw":170,"ramBwEff":170,"cpuClass":"apple","appleGen":6,"gpu":{"kind":"apple","vendor":"apple","gen":"m6","name":"M6 GPU (Metal/MLX)","vram":0,"vramBw":0},"unified":true,"os":"macos","priceInr":[147900,147900],"priceNote":"Apple India (24 GB / 512 GB), Oct 2026","pflopsGpu":4,"pflopsCpu":0.7,"notes":"170 GB/s on the 24/32 GB configurations."},{"id":"m4pro-24","group":"Apple","name":"Mac mini M4 Pro · 24 GB (48/64 GB BTO)","cpu":"Apple M4 Pro (16/20-core GPU)","ram":24,"ramBw":273,"ramBwEff":273,"cpuClass":"apple","appleGen":4,"gpu":{"kind":"apple","vendor":"apple","gen":"m4pro","name":"M4 Pro GPU (Metal/MLX)","vram":0,"vramBw":0},"unified":true,"os":"macos","priceInr":[199900,199900],"priceNote":"₹1,99,900 (24 GB); 48/64 GB BTO price not found","pflopsGpu":5,"pflopsCpu":0.7,"notes":"Set RAM to 48 or 64 in the editor for the BTO versions."},{"id":"m5pro-24","group":"Apple","name":"Mac mini M5 Pro · 24 GB (up to 64 GB BTO)","cpu":"Apple M5 Pro (16/20-core GPU)","ram":24,"ramBw":307,"ramBwEff":307,"cpuClass":"apple","appleGen":5,"gpu":{"kind":"apple","vendor":"apple","gen":"m5pro","name":"M5 Pro GPU (Metal/MLX, neural accelerators)","vram":0,"vramBw":0},"unified":true,"os":"macos","priceInr":[209900,233900],"priceNote":"₹2,09,900 (24 GB); 18-core ₹2,33,900; 64 GB BTO extra","pflopsGpu":9,"pflopsCpu":0.9,"notes":"Splash reports Qwen3.8-27B at 74 tok/s on the 48 GB version."},{"id":"m5max-36","group":"Apple","name":"Mac Studio M5 Max · 36 GB (64/128 GB BTO)","cpu":"Apple M5 Max (32/40-core GPU)","ram":36,"ramBw":460,"ramBwEff":460,"cpuClass":"apple","appleGen":5,"gpu":{"kind":"apple","vendor":"apple","gen":"m5max","name":"M5 Max GPU (Metal/MLX)","vram":0,"vramBw":0},"unified":true,"os":"macos","priceInr":[279900,279900],"priceNote":"₹2,79,900 (36 GB, 32-core GPU); 40-core / 128 GB BTO reaches 614 GB/s","pflopsGpu":15,"pflopsCpu":1,"notes":"The machine lithos-metal and Liquid benchmark on (set RAM 48–128 and bandwidth 614 for the 40-core)."},{"id":"rtx3060-tower","group":"Desktop + GPU","name":"Budget tower · RTX 3060 12 GB + 32 GB DDR4-3200","cpu":"Any 6–8 core desktop CPU","ram":32,"ramBw":51.2,"ramBwEff":45,"cpuClass":"desktop","gpu":{"kind":"dgpu","vendor":"nvidia","gen":"ampere","name":"RTX 3060 12 GB","vram":12,"vramBw":360},"unified":false,"os":"windows","priceInr":[60000,75000],"priceNote":"estimate: GPU ₹24–35k (Oct 2026) + ₹25–30k used desktop","estimate":true,"pflopsGpu":9,"pflopsCpu":0.5,"notes":"Cheapest way to a 30B-class MoE at 35–40 tok/s (experts in RAM via --n-cpu-moe)."},{"id":"rtx5060ti","group":"Desktop + GPU","name":"Tower · RTX 5060 Ti 16 GB + 64 GB DDR5-5600","cpu":"Any 8-core desktop CPU","ram":64,"ramBw":89.6,"ramBwEff":80,"cpuClass":"desktop","gpu":{"kind":"dgpu","vendor":"nvidia","gen":"blackwell","blackwell":true,"name":"RTX 5060 Ti 16 GB","vram":16,"vramBw":448},"unified":false,"os":"windows","priceInr":[120000,150000],"priceNote":"estimate: GPU ₹46.5–64.5k + new build","estimate":true,"pflopsGpu":18,"pflopsCpu":0.6,"notes":"Blackwell: NVFP4 kernels in llama.cpp/vLLM/SGLang. Ran Flash-Next UD-IQ4_XS at 30.6 tok/s with 128 GB RAM."},{"id":"rtx5070ti","group":"Desktop + GPU","name":"Tower · RTX 5070 Ti 16 GB + 64 GB DDR5-5600","cpu":"Any 8-core desktop CPU","ram":64,"ramBw":89.6,"ramBwEff":80,"cpuClass":"desktop","gpu":{"kind":"dgpu","vendor":"nvidia","gen":"blackwell","blackwell":true,"name":"RTX 5070 Ti 16 GB","vram":16,"vramBw":896},"unified":false,"os":"windows","priceInr":[150000,190000],"priceNote":"estimate: GPU ₹83–103k + new build","estimate":true,"pflopsGpu":35,"pflopsCpu":0.6,"notes":"896 GB/s makes 12–16 GB dense models fly; MoEs still spill experts to RAM."},{"id":"rx9070xt","group":"Desktop + GPU","name":"Tower · RX 9070 XT 16 GB + 64 GB DDR5-5600","cpu":"Any 8-core desktop CPU","ram":64,"ramBw":89.6,"ramBwEff":80,"cpuClass":"desktop","gpu":{"kind":"dgpu","vendor":"amd","gen":"rdna4","name":"RX 9070 XT 16 GB (ROCm/Vulkan/HIP)","vram":16,"vramBw":640},"unified":false,"os":"windows","priceInr":[140000,170000],"priceNote":"estimate: GPU ₹68k (8 Oct 2026) + new build","estimate":true,"pflopsGpu":18,"pflopsCpu":0.6,"notes":"Strata’s AMD reference card (Flash-Next at 44–60 tok/s)."},{"id":"arcb580","group":"Desktop + GPU","name":"Tower · Intel Arc B580 12 GB + 32 GB DDR5","cpu":"Any 6–8 core desktop CPU","ram":32,"ramBw":89.6,"ramBwEff":80,"cpuClass":"desktop","gpu":{"kind":"dgpu","vendor":"intel","gen":"xe2","name":"Arc B580 12 GB (Vulkan/SYCL)","vram":12,"vramBw":456},"unified":false,"os":"windows","priceInr":[95000,110000],"priceNote":"estimate: GPU ₹49k (in stock; 12-mo median ₹29k) + new build","estimate":true,"pflopsGpu":12,"pflopsCpu":0.6,"notes":"Works with llama.cpp Vulkan/SYCL; most specialist engines are CUDA-only."},{"id":"rtx3090","group":"Desktop + GPU","name":"Tower · used RTX 3090 24 GB + 64 GB DDR5-5600","cpu":"Any 8-core desktop CPU","ram":64,"ramBw":89.6,"ramBwEff":80,"cpuClass":"desktop","gpu":{"kind":"dgpu","vendor":"nvidia","gen":"ampere","name":"RTX 3090 24 GB (used)","vram":24,"vramBw":936},"unified":false,"os":"linux","priceInr":[150000,180000],"priceNote":"estimate: used 3090 ~₹1.2L (global 90-day median €1,224) + build","estimate":true,"pflopsGpu":25,"pflopsCpu":0.6,"notes":"24 GB of 936 GB/s: the classic sweet spot for 27B dense at Q4 (40 tok/s, 66 with MTP)."},{"id":"rtx4090","group":"Desktop + GPU","name":"Tower · RTX 4090 24 GB + 64 GB DDR5","cpu":"Any 8–16 core desktop CPU","ram":64,"ramBw":89.6,"ramBwEff":80,"cpuClass":"desktop","gpu":{"kind":"dgpu","vendor":"nvidia","gen":"ada","name":"RTX 4090 24 GB","vram":24,"vramBw":1008},"unified":false,"os":"windows","priceInr":[220000,280000],"priceNote":"estimate: RTX 4090 ₹1.5L (Oct 2026, often out of stock) + build","pflopsGpu":55,"pflopsCpu":0.9,"notes":"24 GB at 1,008 GB/s. Qwen3.8-27B UD-Q4_K_XL with MTP: 109 tok/s measured on a 4090.","estimate":true},{"id":"rtx5090","group":"Desktop + GPU","name":"Tower · RTX 5090 32 GB + 96 GB DDR5 + Gen5 NVMe","cpu":"Core i9 / Ryzen 9 desktop","ram":96,"ramBw":89.6,"ramBwEff":80,"cpuClass":"desktop","gpu":{"kind":"dgpu","vendor":"nvidia","gen":"blackwell","blackwell":true,"name":"RTX 5090 32 GB","vram":32,"vramBw":1792},"unified":false,"os":"windows","priceInr":[350000,800000],"priceNote":"GPU alone ₹2.69–7.4L in Oct 2026 (volatile) + build","estimate":true,"pflopsGpu":90,"pflopsCpu":0.9,"notes":"The Infernix / NInfer machine: Qwen3.8-27B NVFP4 at 200+ tok/s, Flash-Next at 140."}],"meta":{"dataDate":"14 Oct 2026","note":"Facts collected from public sources; every benchmark carries its source URL. Prices are Indian listings (₹) unless marked US, captured in October 2026 during the DRAM shortage."}};
+</script>
+<script>
+/*
+ * Turn a plain description of a machine into the hardware shape the estimator uses.
+ * Copyright 2026 Dr. Arvind Karthikeyan. Apache-2.0.
+ *
+ * describeBox({ ram_gb, cpu, gpu, vram_gb, os, ram_type, ram_channels, ram_bandwidth_gbs, vram_bandwidth_gbs })
+ * Everything except ram_gb is optional; unknown values fall back to conservative defaults and are
+ * listed in box.assumptions so callers can show them.
+ */
+
+// Discrete GPUs: [regex, vendor, gen, defaultVramGB, vramBwGBs, effective TFLOPS for prefill, blackwell?]
+const DGPU = [
+  [/rtx\s*pro\s*6000/i, 'nvidia', 'blackwell', 96, 1792, 110, true],
+  [/5090/, 'nvidia', 'blackwell', 32, 1792, 90, true],
+  [/5080/, 'nvidia', 'blackwell', 16, 960, 45, true],
+  [/5070\s*ti/i, 'nvidia', 'blackwell', 16, 896, 35, true],
+  [/5070/, 'nvidia', 'blackwell', 12, 672, 25, true],
+  [/5060\s*ti/i, 'nvidia', 'blackwell', 16, 448, 18, true],
+  [/5060/, 'nvidia', 'blackwell', 8, 448, 15, true],
+  [/5050/, 'nvidia', 'blackwell', 8, 320, 10, true],
+  [/4090/, 'nvidia', 'ada', 24, 1008, 55, false],
+  [/4080/, 'nvidia', 'ada', 16, 717, 40, false],
+  [/4070\s*ti\s*super/i, 'nvidia', 'ada', 16, 672, 33, false],
+  [/4070\s*ti/i, 'nvidia', 'ada', 12, 504, 30, false],
+  [/4070\s*super/i, 'nvidia', 'ada', 12, 504, 28, false],
+  [/4070/, 'nvidia', 'ada', 12, 504, 22, false],
+  [/4060\s*ti/i, 'nvidia', 'ada', 16, 288, 15, false],
+  [/4060/, 'nvidia', 'ada', 8, 272, 12, false],
+  [/3090/, 'nvidia', 'ampere', 24, 936, 25, false],
+  [/3080\s*ti/i, 'nvidia', 'ampere', 12, 912, 22, false],
+  [/3080/, 'nvidia', 'ampere', 10, 760, 20, false],
+  [/3070/, 'nvidia', 'ampere', 8, 448, 14, false],
+  [/3060\s*ti/i, 'nvidia', 'ampere', 8, 448, 11, false],
+  [/3060/, 'nvidia', 'ampere', 12, 360, 9, false],
+  [/2080/, 'nvidia', 'turing', 8, 448, 8, false],
+  [/2070/, 'nvidia', 'turing', 8, 448, 7, false],
+  [/2060/, 'nvidia', 'turing', 6, 336, 5, false],
+  [/a100/i, 'nvidia', 'ampere', 80, 2039, 150, false],
+  [/h100/i, 'nvidia', 'hopper', 80, 3350, 400, false],
+  [/l40s?/i, 'nvidia', 'ada', 48, 864, 90, false],
+  [/a6000/i, 'nvidia', 'ampere', 48, 768, 38, false],
+  [/9070\s*xt/i, 'amd', 'rdna4', 16, 640, 18, false],
+  [/9070/, 'amd', 'rdna4', 16, 640, 15, false],
+  [/9060\s*xt/i, 'amd', 'rdna4', 16, 320, 10, false],
+  [/r9700/i, 'amd', 'rdna4', 32, 640, 20, false],
+  [/7900\s*xtx/i, 'amd', 'rdna3', 24, 960, 25, false],
+  [/7900\s*xt/i, 'amd', 'rdna3', 20, 800, 20, false],
+  [/7800\s*xt/i, 'amd', 'rdna3', 16, 624, 14, false],
+  [/7700\s*xt/i, 'amd', 'rdna3', 12, 432, 11, false],
+  [/6900|6950/, 'amd', 'rdna2', 16, 512, 10, false],
+  [/6800/, 'amd', 'rdna2', 16, 512, 9, false],
+  [/b580/i, 'intel', 'xe2', 12, 456, 12, false],
+  [/b570/i, 'intel', 'xe2', 10, 380, 10, false],
+  [/a770/i, 'intel', 'xe1', 16, 560, 10, false],
+];
+
+// Apple chips: [regex, gen tag, appleGen, bandwidth GB/s, TFLOPS]
+const APPLE = [
+  [/m5\s*ultra/i, 'm5ultra', 5, 1229, 30], [/m5\s*max/i, 'm5max', 5, 614, 15], [/m5\s*pro/i, 'm5pro', 5, 307, 9], [/m5/i, 'm5', 5, 153, 4.5],
+  [/m6\s*max/i, 'm6max', 6, 614, 16], [/m6\s*pro/i, 'm6pro', 6, 307, 10], [/m6/i, 'm6', 6, 170, 4],
+  [/m4\s*max/i, 'm4max', 4, 546, 12], [/m4\s*pro/i, 'm4pro', 4, 273, 5], [/m4/i, 'm4', 4, 120, 2.5],
+  [/m3\s*ultra/i, 'm3ultra', 3, 819, 20], [/m3\s*max/i, 'm3max', 3, 400, 10], [/m3\s*pro/i, 'm3pro', 3, 150, 4], [/m3/i, 'm3', 3, 100, 2.5],
+  [/m2\s*ultra/i, 'm2ultra', 2, 800, 18], [/m2\s*max/i, 'm2max', 2, 400, 9], [/m2\s*pro/i, 'm2pro', 2, 200, 4], [/m2/i, 'm2', 2, 100, 2],
+  [/m1\s*ultra/i, 'm1ultra', 1, 800, 15], [/m1\s*max/i, 'm1max', 1, 400, 8], [/m1\s*pro/i, 'm1pro', 1, 200, 3.5], [/m1/i, 'm1', 1, 68, 1.8],
+];
+
+// Integrated GPUs that share system RAM: [regex, vendor, gen, name, TFLOPS]
+const IGPU = [
+  [/890m/i, 'amd', 'rdna3.5', 'Radeon 890M', 3], [/880m/i, 'amd', 'rdna3.5', 'Radeon 880M', 2.6],
+  [/780m/i, 'amd', 'rdna3', 'Radeon 780M', 2.2], [/760m/i, 'amd', 'rdna3', 'Radeon 760M', 1.6], [/680m/i, 'amd', 'rdna2', 'Radeon 680M', 1.4],
+  [/arc\s*b390|b390/i, 'intel', 'xe3', 'Arc B390', 4], [/arc\s*140v|140v/i, 'intel', 'xe2', 'Arc 140V', 3], [/arc\s*graphics|meteor|core\s*ultra/i, 'intel', 'xe', 'Intel Arc iGPU', 2],
+];
+
+function num(x) { const n = Number(x); return Number.isFinite(n) && n > 0 ? n : null; }
+
+function describeBox(spec) {
+  const s = spec || {};
+  const a = [];   // assumptions shown to the user
+  const cpu = String(s.cpu || '');
+  const gpuStr = String(s.gpu || '');
+  const both = cpu + ' ' + gpuStr;
+  let ram = num(s.ram_gb);
+  if (!ram) { ram = 16; a.push('RAM not given: assumed 16 GB'); }
+  let os = (s.os || '').toLowerCase();
+  if (!['linux', 'windows', 'macos'].includes(os)) {
+    os = /apple|m[1-6]\b/i.test(both) ? 'macos' : 'linux';
+    if (!s.os) a.push(`OS not given: assumed ${os}`);
+  }
+  const box = { id: 'custom', group: 'Custom', name: s.name || 'Your machine', cpu: cpu || 'unknown CPU', ram, os, gpu: null, unified: false, cpuClass: 'desktop', pflopsCpu: 0.6, notes: '', assumptions: a };
+
+  // Apple Silicon
+  const ap = APPLE.find(([re]) => re.test(both) && /apple|m[1-6]/i.test(both));
+  if (ap || os === 'macos') {
+    const [, gen, appleGen, bw, tf] = ap || [null, 'm4', 4, 120, 2.5];
+    if (!ap) a.push('Apple chip not recognised: assumed base M4 (120 GB/s)');
+    const bwv = num(s.ram_bandwidth_gbs) || bw;
+    Object.assign(box, { os: 'macos', unified: true, cpuClass: 'apple', appleGen, ramBw: bwv, ramBwEff: bwv, pflopsGpu: tf, gpu: { kind: 'apple', vendor: 'apple', gen, name: (ap ? cpu || gpuStr : 'Apple GPU') + ' (Metal/MLX)', vram: 0, vramBw: 0 } });
+    return box;
+  }
+  // DGX Spark / GB10
+  if (/gb10|dgx\s*spark|ascent\s*gx10/i.test(both)) {
+    const bwv = num(s.ram_bandwidth_gbs) || 240;
+    Object.assign(box, { os: 'linux', unified: true, cpuClass: 'apu', ramBw: 273, ramBwEff: bwv, pflopsGpu: 20, pflopsCpu: 1, gpu: { kind: 'apu', vendor: 'nvidia', gen: 'gb10', blackwell: true, name: 'GB10 Blackwell', vram: 0, vramBw: 0 } });
+    return box;
+  }
+  // Strix Halo
+  if (/ai\s*max|8060s|8050s|strix\s*halo/i.test(both)) {
+    const bwv = num(s.ram_bandwidth_gbs) || 215;
+    Object.assign(box, { unified: true, cpuClass: 'apu', ramBw: 256, ramBwEff: bwv, pflopsGpu: 7, pflopsCpu: 1.2, gpu: { kind: 'apu', vendor: 'amd', gen: 'rdna3.5', name: 'Radeon 8060S (Strix Halo)', vram: 0, vramBw: 0 } });
+    return box;
+  }
+
+  // CPU class and system-RAM bandwidth
+  if (/raspberry|bcm27|cortex|rk3588|arm/i.test(cpu)) box.cpuClass = 'sbc', box.pflopsCpu = 0.07;
+  else if (/\bn(50|95|97|100|150|200|250|300|305|350|355)\b|celeron|pentium|atom/i.test(cpu)) box.cpuClass = 'small', box.pflopsCpu = 0.15;
+  let bw = num(s.ram_bandwidth_gbs);
+  if (!bw) {
+    const type = String(s.ram_type || '').toLowerCase();
+    const ch = num(s.ram_channels) || (box.cpuClass === 'small' || box.cpuClass === 'sbc' ? 1 : 2);
+    let per;
+    if (box.cpuClass === 'sbc') per = 17;
+    else if (/lpddr5x/.test(type)) per = 60;
+    else if (/ddr5/.test(type)) per = 44.8;
+    else if (/ddr4/.test(type)) per = 25.6;
+    else { per = box.cpuClass === 'small' ? 25.6 : 44.8; a.push(`RAM type not given: assumed ${box.cpuClass === 'small' ? 'DDR4' : 'DDR5-5600'}, ${ch}-channel`); }
+    bw = box.cpuClass === 'sbc' ? per : per * ch * 0.92;
+  }
+  box.ramBw = bw; box.ramBwEff = Math.round(bw * 10) / 10;
+
+  // GPU
+  const dg = DGPU.find(([re]) => re.test(gpuStr));
+  if (dg) {
+    const [, vendor, gen, vram, vbw, tf, bl] = dg;
+    const v = num(s.vram_gb) || vram;
+    const laptop = /laptop|mobile|max-q/i.test(gpuStr);
+    box.gpu = { kind: 'dgpu', vendor, gen, blackwell: bl, name: gpuStr, vram: v, vramBw: num(s.vram_bandwidth_gbs) || (laptop ? Math.round(vbw * 0.85) : vbw) };
+    box.pflopsGpu = laptop ? tf * 0.7 : tf;
+    if (laptop && !num(s.vram_gb)) a.push('laptop GPU: check VRAM, laptop parts often have less than the desktop card');
+  } else if (num(s.vram_gb) && gpuStr) {
+    const vendor = /radeon|rx|amd/i.test(gpuStr) ? 'amd' : /arc|intel/i.test(gpuStr) ? 'intel' : 'nvidia';
+    box.gpu = { kind: 'dgpu', vendor, gen: vendor === 'nvidia' ? 'ampere' : vendor === 'amd' ? 'rdna3' : 'xe2', name: gpuStr, vram: num(s.vram_gb), vramBw: num(s.vram_bandwidth_gbs) || 400 };
+    box.pflopsGpu = 10;
+    a.push(`GPU "${gpuStr}" not in the lookup table: assumed ${box.gpu.vramBw} GB/s, ${box.gpu.gen}`);
+  } else {
+    const ig = IGPU.find(([re]) => re.test(both));
+    if (ig) {
+      const [, vendor, gen, name, tf] = ig;
+      box.gpu = { kind: 'igpu', vendor, gen, name: name + ' (Vulkan)', vram: 0, vramBw: 0 };
+      box.pflopsGpu = tf;
+    }
+  }
+  if (box.cpuClass === 'sbc' || box.cpuClass === 'small') box.os = s.os ? os : 'linux';
+  return box;
+}
+
+// "32GB DDR5 Ryzen 7 8845HS, RTX 3060 12GB, windows" → spec
+function parseSpecString(s) {
+  const t = String(s);
+  const norm = (x) => String(x || '');
+  const gbs = [...t.matchAll(/(\d+(?:\.\d+)?)\s*gb/gi)].map(m => ({ v: Number(m[1]), at: m.index }));
+  if (!gbs.length && !/m[1-6]|rtx|gtx|radeon|rx\s*\d|arc|pi\s*5|n1[05]0/i.test(t)) return null;
+  const spec = { cpu: t, gpu: '' };
+  const gpuM = t.match(/(rtx\s*(?:pro\s*)?\d{4}(?:\s*(?:ti|super))*(?:\s*laptop)?|gtx\s*\d{3,4}|rx\s*\d{4}\s*(?:xtx|xt)?|arc\s*[ab]\d{3}|radeon\s*\d{3}m|r9700|a100|h100|l40s?)/i);
+  if (gpuM) spec.gpu = gpuM[0];
+  if (/apple|\bm[1-6](\s*(pro|max|ultra))?\b|mac/i.test(t)) { spec.gpu = (t.match(/m[1-6](\s*(pro|max|ultra))?/i) || ['m4'])[0]; spec.cpu = 'Apple ' + spec.gpu; spec.os = 'macos'; }
+  if (gbs.length) {
+    // the GB figure right after a GPU name is VRAM; the largest other one is RAM
+    if (gpuM) {
+      const after = gbs.find(g => g.at > gpuM.index && g.at - (gpuM.index + gpuM[0].length) < 8);
+      if (after) spec.vram_gb = after.v;
+    }
+    const rest = gbs.filter(g => g.v !== spec.vram_gb);
+    if (rest.length) spec.ram_gb = Math.max(...rest.map(g => g.v));
+  }
+  const ty = t.match(/lpddr5x|lpddr5|ddr5|ddr4/i); if (ty) spec.ram_type = ty[0];
+  if (/windows|win1[01]/i.test(t)) spec.os = 'windows'; else if (/linux|ubuntu/i.test(t)) spec.os = 'linux'; else if (/mac/i.test(t)) spec.os = 'macos';
+  if (/single[-\s]?channel/i.test(t)) spec.ram_channels = 1;
+  return spec;
+}
+
+
+const api = { describeBox, parseSpecString, DGPU, APPLE, IGPU };
+if (typeof window !== 'undefined') window.ShilaBox = api;
+
+
+</script>
+<script>
+/*
+ * SHILA core — fitment estimator and engine ranking.
+ * Copyright 2026 Dr. Arvind Karthikeyan. Licensed under the Apache License, Version 2.0.
+ * Pure functions, no I/O, no DOM. Data comes in through createShila({ models, hardware, meta }).
+ */
+function createShila({ models, hardware, meta }) {
+  const MODELS = models;
+  const HARDWARE = hardware;
+  const DATA_DATE = (meta && meta.dataDate) || 'unknown';
+
+  /* ---------------------------------------------------------- ESTIMATION */
+  const CLASS = {
+    dgpu_nvidia: { eff: 0.88, ovh: 0.05, moeOvh: 0.06, label: 'CUDA' },
+    dgpu_amd: { eff: 0.78, ovh: 0.06, moeOvh: 0.07, label: 'ROCm/Vulkan' },
+    dgpu_intel: { eff: 0.70, ovh: 0.08, moeOvh: 0.08, label: 'Vulkan/SYCL' },
+    apple: { eff: 0.88, ovh: 0.06, moeOvh: 0.02, label: 'Metal' },
+    apu: { eff: 0.88, ovh: 0.04, moeOvh: 0.05, label: 'ROCm/Vulkan/CUDA' },
+    igpu: { eff: 0.65, ovh: 0.09, moeOvh: 0.05, label: 'Vulkan' },
+    desktop: { effMoe: 0.45, effDense: 0.60, ovh: 0.15, label: 'CPU' },
+    small: { effMoe: 0.45, effDense: 0.55, ovh: 0.40, label: 'CPU (4 cores)' },
+    sbc: { effMoe: 0.55, effDense: 0.70, ovh: 0.40, label: 'CPU (Arm)' },
+  };
+  const OS_RESERVE = { linux: 3, windows: 4, macos: 4 };
+  const SPLIT_RAM_EFF = 0.50;      // CPU computing offloaded experts while the GPU does the rest
+  const SSD_EFF_GBPS = 3.0;        // NVMe reads for streamed experts, effective
+
+  function gpuClass(hw) {
+    if (!hw.gpu) return null;
+    if (hw.gpu.kind === 'apple') return CLASS.apple;
+    if (hw.gpu.kind === 'apu') return CLASS.apu;
+    if (hw.gpu.kind === 'igpu') return CLASS.igpu;
+    return hw.gpu.vendor === 'nvidia' ? CLASS.dgpu_nvidia : hw.gpu.vendor === 'amd' ? CLASS.dgpu_amd : CLASS.dgpu_intel;
+  }
+  function unifiedUsable(hw, wired) {
+    if (hw.gpu && hw.gpu.kind === 'apple') return wired ? hw.ram - 3.5 : (hw.ram <= 24 ? hw.ram * 0.70 : hw.ram * 0.78);
+    if (hw.gpu && hw.gpu.vendor === 'nvidia') return hw.ram - 14;               // DGX Spark
+    return hw.ram >= 128 ? hw.ram - 16 : hw.ram - 12;                             // Strix Halo
+  }
+  function bpw(model, q) {
+    const main = q.gb - (q.tableGB || (q.fmt === 'gguf' ? (model.tableGB || 0) : 0));
+    return main * 8 / model.total;
+  }
+  function qualityTier(model, q) {
+    const b = bpw(model, q);
+    if (q.qat) return { rank: 4, label: 'QAT 4-bit', desc: 'quant-aware trained: close to 8-bit quality at 4-bit size' };
+    if (b >= 7.5) return { rank: 5, label: 'Reference', desc: '8-bit or better; indistinguishable from the original' };
+    if (b >= 5.5) return { rank: 4, label: 'Excellent', desc: '5–6-bit; no practical loss' };
+    if (b >= 4.2) return { rank: 3, label: 'Good', desc: 'standard 4-bit' };
+    if (b >= 3.3) return { rank: 2, label: 'Usable', desc: '3-bit; noticeable on hard reasoning and code' };
+    if (b >= 2.5) return { rank: 1, label: 'Degraded', desc: '2-bit; only for models too big to run otherwise' };
+    return { rank: 0, label: 'Experimental', desc: 'sub-2.5-bit' };
+  }
+
+  // Which weight formats this box can execute at all
+  function formatOk(hw, model, q) {
+    const nv = hw.gpu && hw.gpu.vendor === 'nvidia';
+    switch (q.fmt) {
+      case 'gguf': case 'bf16': case 'onnx': return true;
+      case 'mlx': return !!(hw.gpu && hw.gpu.kind === 'apple');
+      case 'nvfp4': return (nv && !!hw.gpu.blackwell) || (!!(hw.gpu && hw.gpu.kind === 'apple') && ['qwen38-27b', 'qwen36-35b'].includes(model.id));
+      case 'fp8': return nv && ['ada', 'blackwell', 'gb10'].includes(hw.gpu.gen);
+      default: return false;
+    }
+  }
+
+  // opts: {ctx, users, kv8, vision, tableLazy, wired, speedCtx}
+  function estimate(model, q, hw, opts) {
+    const o = Object.assign({ ctx: 32768, users: 1, kv8: false, vision: false, tableLazy: true, wired: true }, opts || {});
+    const notes = [];
+    if (!formatOk(hw, model, q)) {
+      return { model, quant: q, hw, need: q.gb, placement: 'na', status: 'na', decode: 0, prefill: 0, notes: [q.fmt === 'mlx' ? 'MLX files run on Apple Silicon only' : q.fmt === 'nvfp4' ? 'NVFP4 needs a Blackwell GPU (RTX 50 / GB10) — or a Mac through lithos-metal for the Qwen models' : q.fmt === 'fp8' ? 'FP8 needs an Ada or Blackwell NVIDIA GPU (vLLM / SGLang)' : 'format not usable here'], vramGB: 0, ramGB: 0, ssdGB: 0, capacityGB: 0, mainGB: q.gb, kvGB: 0, ovhGB: 0, tableGB: 0 };
+    }
+    const tableGB = q.tableGB || (q.fmt === 'gguf' ? (model.tableGB || 0) : 0);
+    const mainGB = q.gb - tableGB + (o.vision && model.vision ? model.mmprojGB : 0);
+    const kvGB = (model.kvBytes * o.ctx * o.users * (o.kv8 ? 0.5 : 1)) / 1e9 + model.constStateGB * o.users;
+    const ovhGB = 0.8 + 0.6 * (o.ctx / 32768) + (model.tableGB ? 1.0 : 0);
+    const tableResidentGB = tableGB && !o.tableLazy ? tableGB : 0;
+    const need = mainGB + kvGB + ovhGB;
+    const bytesPerParam = (q.gb - tableGB) / model.total;              // GB per billion params
+    const activeBytes = model.active * bytesPerParam;                   // GB read per token for weights
+    const sctx = o.speedCtx || o.ctx;                                    // context in play when measuring speed
+    const kvRead = (model.kvBytes * sctx * (o.kv8 ? 0.5 : 1)) / 1e9;    // GB of KV read per token
+    const osRes = OS_RESERVE[hw.os] || 4;
+    const gcls = gpuClass(hw);
+    const ccls = CLASS[hw.cpuClass] || CLASS.desktop;
+    const isMoe = model.kind === 'moe';
+    const moeOvh = isMoe ? 1 : 0;
+    const r = { model, quant: q, hw, mainGB, kvGB, ovhGB, tableGB, need, notes, decode: 0, prefill: 0, placement: 'no', status: 'no', vramGB: 0, ramGB: 0, ssdGB: 0, capacityGB: 0 };
+
+    // attention compute per token at the chosen context (Flash-Next's sparse attention only touches ~2K tokens, so its attnFlops is tiny)
+    const attnMs = (pf, eff) => pf ? ((model.attnLayers || 0) * (model.id === 'flash-next' ? Math.min(sctx, 2048) : sctx) * (model.attnFlops || 16384)) / (pf * 1e12 * eff) * 1000 : 0;
+    const finish = (placement, usedA, capA, decodeMs, pflops, extra) => {
+      r.placement = placement;
+      const ms = (decodeMs + attnMs(pflops, (extra && extra.attnEff) || 0.08)) / (model.archMul || 1);
+      r.decode = ms > 0 ? 1000 / ms : 0;
+      r.prefill = pflops ? (pflops * 1e12) / (2 * model.active * 1e9) * (extra && extra.prefillMul || 1) : 0;
+      const head = (capA - usedA) / capA;
+      r.status = head >= 0.12 ? 'ok' : 'tight';
+      r.capacityGB = capA; r.usedGB = usedA;
+      if (extra && extra.ssd) r.status = 'ssd';
+      return r;
+    };
+
+    // 1) everything in discrete VRAM
+    if (hw.gpu && hw.gpu.kind === 'dgpu') {
+      const vAvail = hw.gpu.vram - 0.6;
+      if (need + tableResidentGB <= vAvail || (need <= vAvail && tableGB && o.tableLazy)) {
+        if (tableGB) { r.ssdGB = tableGB; notes.push('n-gram table streams from NVMe (lazy mmap); prompt reading roughly halves'); }
+        const t = (activeBytes + kvRead) / (hw.gpu.vramBw * gcls.eff) * 1000 + model.layers * (gcls.ovh + moeOvh * gcls.moeOvh);
+        r.vramGB = need;
+        return finish('gpu', need, vAvail, t, hw.pflopsGpu, { prefillMul: tableGB ? 0.5 : 1, attnEff: 0.08 });
+      }
+    }
+    // 2) unified memory (Apple / Strix Halo / DGX Spark)
+    if (hw.unified) {
+      const usable = unifiedUsable(hw, o.wired);
+      const resident = need + tableResidentGB;
+      if (resident <= usable) {
+        if (tableGB && o.tableLazy) { r.ssdGB = tableGB; notes.push('n-gram table streams from the SSD (lazy mmap); prompt reading roughly halves'); }
+        const t = (activeBytes + kvRead) / (hw.ramBwEff * gcls.eff) * 1000 + model.layers * (gcls.ovh + moeOvh * gcls.moeOvh);
+        r.vramGB = need;
+        if (hw.gpu.kind === 'apple' && (o.wired ? resident > hw.ram * 0.70 : resident > usable * 0.9)) notes.push(o.wired ? `needs the macOS GPU memory limit raised: sudo sysctl iogpu.wired_limit_mb=${Math.round((hw.ram - 3) * 1024)}` : 'close to the default macOS GPU memory limit; raise iogpu.wired_limit_mb for headroom');
+        return finish('unified', resident, usable, t, hw.pflopsGpu, { prefillMul: tableGB ? 0.5 : 1, attnEff: hw.gpu.kind === 'apple' ? 0.12 : 0.1 });
+      }
+      // unified box that is too small: MoE can still stream experts from SSD (ds4 / llama.cpp mmap)
+      if (isMoe && mainGB * 0.55 <= usable) {
+        const ramFrac = Math.max(0, Math.min(1, (usable - kvGB - ovhGB) / mainGB));
+        const ssdBytes = activeBytes * model.expertActiveFrac * (1 - ramFrac);
+        const t = (activeBytes + kvRead) / (hw.ramBwEff * gcls.eff) * 1000 + ssdBytes / SSD_EFF_GBPS * 1000 + model.layers * (gcls.ovh + gcls.moeOvh + 0.15);
+        r.ssdGB = mainGB * (1 - ramFrac) + tableGB; r.vramGB = usable;
+        notes.push(`only ~${Math.round(ramFrac * 100)}% of the experts stay in memory; the rest stream from the SSD each token`);
+        return finish('ssd', usable, usable, t, hw.pflopsGpu, { ssd: true, prefillMul: 0.3, attnEff: 0.1 });
+      }
+      r.notes.push('does not fit in unified memory'); r.capacityGB = usable; r.usedGB = resident;
+      return r;
+    }
+    // 3) discrete GPU + system RAM (MoE experts offloaded / dense layers split)
+    const ramAvail = hw.ram - osRes - 0.5;
+    if (hw.gpu && hw.gpu.kind === 'dgpu') {
+      const vAvail = hw.gpu.vram - 0.6;
+      if (isMoe) {
+        const expertsGB = mainGB * model.expertWeightFrac;
+        const denseGB = mainGB - expertsGB;
+        const vramFixed = denseGB + kvGB + ovhGB;
+        if (vramFixed <= vAvail) {
+          const room = vAvail - vramFixed;
+          const f = Math.max(0, Math.min(1, (expertsGB - room) / expertsGB));   // share of experts living in RAM
+          const ramPart = expertsGB * f + tableResidentGB;
+          if (ramPart <= ramAvail) {
+            const vramBytes = activeBytes * (1 - model.expertActiveFrac * f) + kvRead;
+            const ramBytes = activeBytes * model.expertActiveFrac * f;
+            const t = vramBytes / (hw.gpu.vramBw * gcls.eff) * 1000 + ramBytes / (hw.ramBwEff * SPLIT_RAM_EFF) * 1000
+              + model.layers * (gcls.ovh + gcls.moeOvh) + f * model.layers * 0.1;
+            r.vramGB = vramFixed + expertsGB * (1 - f); r.ramGB = expertsGB * f; r.splitFrac = f;
+            if (tableGB && o.tableLazy) { r.ssdGB = tableGB; notes.push('n-gram table streams from NVMe (lazy mmap)'); }
+            notes.push(`${Math.round(f * 100)}% of the expert weights live in system RAM (llama.cpp --n-cpu-moe / --cpu-moe); an expert cache on the GPU typically adds 30–60%`);
+            return finish('split', ramPart, ramAvail, t, hw.pflopsGpu, { prefillMul: 0.6 * (tableGB ? 0.5 : 1), attnEff: 0.08 });
+          }
+          // not even RAM: stream the rest from SSD
+          if (expertsGB * 0.55 <= ramAvail + room) {
+            const ramFrac = Math.max(0, Math.min(1, (ramAvail + room) / expertsGB));
+            const ssdBytes = activeBytes * model.expertActiveFrac * (1 - ramFrac);
+            const t = (activeBytes + kvRead) / (hw.gpu.vramBw * gcls.eff) * 1000 + activeBytes * model.expertActiveFrac * ramFrac / (hw.ramBwEff * SPLIT_RAM_EFF) * 1000
+              + ssdBytes / SSD_EFF_GBPS * 1000 + model.layers * (gcls.ovh + gcls.moeOvh + 0.2);
+            r.vramGB = vAvail; r.ramGB = ramAvail; r.ssdGB = expertsGB * (1 - ramFrac) + tableGB;
+            notes.push(`~${Math.round((1 - ramFrac) * 100)}% of the experts stream from the SSD each token (Strata / Infernix / llama.cpp mmap do this); slow but it runs`);
+            return finish('ssd', ramAvail, ramAvail, t, hw.pflopsGpu, { ssd: true, prefillMul: 0.25, attnEff: 0.08 });
+          }
+        }
+      } else {
+        // dense: split layers; the RAM share runs at RAM speed on the CPU
+        const f = Math.max(0, Math.min(1, (need - vAvail) / mainGB));
+        if (mainGB * f <= ramAvail) {
+          const t = activeBytes * (1 - f) / (hw.gpu.vramBw * gcls.eff) * 1000 + activeBytes * f / (hw.ramBwEff * ccls.effDense) * 1000
+            + kvRead / (hw.gpu.vramBw * gcls.eff) * 1000 + model.layers * (gcls.ovh + f * ccls.ovh);
+          r.vramGB = vAvail; r.ramGB = mainGB * f; r.splitFrac = f;
+          notes.push(`${Math.round(f * 100)}% of the layers run on the CPU from system RAM; dense models pay for every byte in RAM`);
+          return finish('split', mainGB * f, ramAvail, t, hw.pflopsGpu * (1 - f) + hw.pflopsCpu * f, { prefillMul: 1, attnEff: 0.08 });
+        }
+      }
+    }
+    // 4) CPU-only (or iGPU over system RAM)
+    if (!hw.unified) {
+      const resident = need + tableResidentGB;
+      if (resident <= ramAvail) {
+        const cls = hw.gpu && hw.gpu.kind === 'igpu' ? CLASS.igpu : ccls;
+        const eff = cls === CLASS.igpu ? cls.eff : (isMoe ? cls.effMoe : cls.effDense);
+        const t = (activeBytes + kvRead) / (hw.ramBwEff * eff) * 1000 + model.layers * (cls.ovh + (cls === CLASS.igpu ? moeOvh * cls.moeOvh : 0));
+        r.ramGB = resident; if (tableGB && o.tableLazy) r.ssdGB = tableGB;
+        const pl = cls === CLASS.igpu ? 'igpu' : 'cpu';
+        return finish(pl, resident, ramAvail, t, cls === CLASS.igpu ? hw.pflopsGpu : hw.pflopsCpu, { prefillMul: tableGB ? 0.5 : 1, attnEff: cls === CLASS.igpu ? 0.1 : 0.25 });
+      }
+      if (isMoe && mainGB * 0.55 <= ramAvail) {
+        const ramFrac = Math.max(0, Math.min(1, (ramAvail - kvGB - ovhGB) / mainGB));
+        const ssdBytes = activeBytes * model.expertActiveFrac * (1 - ramFrac);
+        const cls = hw.gpu && hw.gpu.kind === 'igpu' ? CLASS.igpu : ccls;
+        const eff = cls === CLASS.igpu ? cls.eff : cls.effMoe;
+        const t = (activeBytes + kvRead) / (hw.ramBwEff * eff) * 1000 + ssdBytes / SSD_EFF_GBPS * 1000 + model.layers * (cls.ovh + 0.2);
+        r.ramGB = ramAvail; r.ssdGB = mainGB * (1 - ramFrac) + tableGB;
+        notes.push(`~${Math.round((1 - ramFrac) * 100)}% of the experts stream from the SSD each token; slow but it runs`);
+        return finish('ssd', ramAvail, ramAvail, t, hw.pflopsCpu, { ssd: true, prefillMul: 0.3, attnEff: 0.25 });
+      }
+      r.capacityGB = ramAvail; r.usedGB = resident;
+    }
+    r.notes.push('does not fit');
+    return r;
+  }
+
+  function placementLabel(p) {
+    return { gpu: 'all in VRAM', unified: 'unified memory', split: 'GPU + RAM split', igpu: 'RAM, iGPU compute', cpu: 'RAM, CPU only', ssd: 'streams from SSD', no: 'does not fit', na: 'not for this hardware' }[p] || p;
+  }
+
+  const FLOORS = { any: 0, usable: 2, good: 3, excellent: 4 };
+  // Best quant for a model on a box: highest quality that fits comfortably and is still usable in speed.
+  function plan(model, hw, opts) {
+    const rows = model.quants.map(q => {
+      const est = estimate(model, q, hw, opts);
+      const short = estimate(model, q, hw, Object.assign({}, opts, { speedCtx: 2048 }));
+      est.decodeShort = short.decode;
+      return { q, tier: qualityTier(model, q), est };
+    });
+    const floor = FLOORS[(opts && opts.floor) || 'any'] || 0;
+    const fits = rows.filter(x => x.est.status !== 'no' && x.est.status !== 'na' && x.tier.rank >= floor);
+    // Score each file: quality tier, minus a penalty for speeds below a comfortable 25 tok/s,
+    // minus penalties for little headroom, SSD streaming and 2-bit files.
+    const score = (x) => {
+      const d = Math.max(0.1, x.est.decodeShort || 0);
+      return x.tier.rank + 4 * Math.log2(Math.min(d, 25) / 25)
+        - (x.est.status === 'tight' ? 0.3 : 0) - (x.est.status === 'ssd' ? 3 : 0) - (x.tier.rank <= 1 ? 1 : 0);
+    };
+    const best = fits.slice().sort((a, b) => (score(b) - score(a)) || (b.est.decodeShort - a.est.decodeShort))[0] || null;
+    const fastest = fits.filter(x => x.est.status !== 'ssd').slice().sort((a, b) => b.est.decodeShort - a.est.decodeShort)[0] || null;
+    return { rows, best, fastest };
+  }
+
+  /* -------------------------------------------------------------- ENGINES */
+  const hasFmt = (model, fmt) => model.quants.some(q => q.fmt === fmt);
+  const isNvidia = hw => hw.gpu && hw.gpu.vendor === 'nvidia';
+  const isBlackwell = hw => isNvidia(hw) && !!hw.gpu.blackwell;
+  const isApple = hw => hw.gpu && hw.gpu.kind === 'apple';
+  const isAmd = hw => hw.gpu && hw.gpu.vendor === 'amd';
+  const vram = hw => (hw.gpu && hw.gpu.kind === 'dgpu') ? hw.gpu.vram : (hw.unified ? unifiedUsable(hw, true) : 0);
+  const ggufTag = (pick) => pick && pick.q.fmt === 'gguf' ? pick.q : null;
+  const findQ = (model, fmt) => model.quants.find(q => q.fmt === fmt);
+
+  function llamaCmd(hw, model, pick, o) {
+    const q = ggufTag(pick) || findQ(model, 'gguf');
+    const lines = [];
+    const inst = hw.os === 'macos' ? 'brew install llama.cpp' : hw.os === 'windows' ? 'winget install llama.cpp   # or a CUDA/Vulkan build from github.com/ggml-org/llama.cpp/releases' : 'brew install llama.cpp   # or build: cmake -B build -DGGML_CUDA=ON (NVIDIA) / -DGGML_VULKAN=ON (AMD, Intel) && cmake --build build -j';
+    lines.push(inst);
+    let run = `llama-server -hf ${q.repo}:${q.tag} -c ${o.ctx} -fa on --jinja --port 8080`;
+    const p = pick ? pick.est.placement : 'cpu';
+    if (hw.gpu && hw.gpu.kind !== 'igpu' || hw.unified) run += ' -ngl 99';
+    if (p === 'split' && model.kind === 'moe') {
+      const n = Math.max(1, Math.round((pick.est.splitFrac || 0) * model.layers));
+      run += ` --n-cpu-moe ${n}   # ${n} of ${model.layers} layers' experts in RAM; try --moe-cache-mib <MiB> (v0.6, LRU expert cache on the GPU)`;
+    } else if (p === 'split') {
+      run += '   # --fit (default on) splits layers between GPU and CPU automatically';
+    }
+    if (o.kv8) run += ' -ctk q8_0 -ctv q8_0';
+    if (model.id === 'flash-next') run += ' --tensor-read-lazy auto   # keeps the 28.8 GB n-gram table on NVMe';
+    if (o.vision && model.vision) run += '   # add --mmproj <mmproj.gguf> from the same repo for images';
+    lines.push(run);
+    if (model.id === 'qwen38-27b' || model.id === 'flash-next' || model.id === 'qwen36-35b' || model.family === 'Gemma 4' || model.id === 'nemotron35') {
+      lines.push('# optional drafting (≈1.5–2× decode on dense models): --spec-type draft-mtp   (MTP head built in; DFlash/DSpark via --spec-type draft-dflash / draft-dspark — check llama-server --help for your build)');
+    }
+    return lines.join('\n');
+  }
+
+  const ENGINES = [
+    {
+      id: 'llamacpp', name: 'llama.cpp', kind: 'general', url: 'https://github.com/ggml-org/llama.cpp', license: 'MIT',
+      blurb: 'The generalist. Thousands of models, every backend (CUDA, HIP, Vulkan, Metal, SYCL, CPU), GGUF everywhere. v0.6.0 (5 Oct 2026) added NVFP4 kernels, an LRU expert cache (--moe-cache-mib) and MTP/DFlash/DSpark drafting.',
+      api: 'OpenAI + Anthropic Messages APIs (llama-server)', users: 'multi-user (slots)',
+      check(hw, model, pick, o) {
+        if (!hasFmt(model, 'gguf')) return null;
+        const p = pick ? pick.est.placement : 'no';
+        let score = 72; const why = []; const caveats = [];
+        if (['cpu', 'igpu', 'split', 'ssd'].includes(p)) { score += 14; why.push('the only engine that runs this placement on this box well'); }
+        if (hw.unified && !isApple(hw)) { score += 6; why.push('Strix Halo / Spark: ROCm/Vulkan/CUDA builds all work'); }
+        if (isApple(hw)) { why.push('Metal backend; MLX engines are usually 1.3–2× faster on dense models'); score -= 4; }
+        if (model.id === 'flash-next') { why.push('qwen4exp support since b10660; n-gram table lazily mmap’d from NVMe'); }
+        if (model.id === 'lfm25-24b') why.push('day-one lfm2moe support; the quant Liquid benchmarked is Q4_K_M');
+        caveats.push('flag names change between builds; confirm with llama-server --help');
+        return { score, why, caveats, cmd: llamaCmd(hw, model, pick, o) };
+      },
+    },
+    {
+      id: 'lmstudio', name: 'LM Studio', kind: 'general', url: 'https://lmstudio.ai', license: 'proprietary, free',
+      blurb: 'GUI on top of llama.cpp and MLX. v0.4.26 (13 Oct 2026): MTP/DFlash/DSpark assistant drafters, “Force expert weights onto CPU”, the experimental Splash backend, Anthropic + OpenAI APIs, MCP.',
+      api: 'OpenAI + Anthropic + Responses APIs', users: 'parallel requests',
+      check(hw, model, pick, o) {
+        if (!hasFmt(model, 'gguf') && !hasFmt(model, 'mlx')) return null;
+        const p = pick ? pick.est.placement : 'no';
+        let score = 64; const why = ['easiest install on Windows, macOS and Linux']; const caveats = [];
+        if (p === 'split' && model.kind === 'moe') why.push('turn on “Force Model Expert Weights onto CPU” (same as --n-cpu-moe)');
+        if (isApple(hw)) why.push('uses its MLX engine on Apple Silicon');
+        if (model.id === 'lfm25-24b') caveats.push('model is one day old; search the hf.co GGUF repo if the catalog lags');
+        const fmt = isApple(hw) && hasFmt(model, 'mlx') ? 'MLX' : 'GGUF';
+        return { score, why, caveats, cmd: `1. Install LM Studio → Discover → search "${model.name}" → download the ${fmt} ${pick ? pick.q.tag : ''} build\n2. Load → context ${o.ctx}${p === 'split' ? ' → enable “Force Model Expert Weights onto CPU”' : ''}\n3. Developer → Local Server (OpenAI /v1 and Anthropic /v1/messages on :1234)` };
+      },
+    },
+    {
+      id: 'ollama', name: 'Ollama', kind: 'general', url: 'https://ollama.com', license: 'MIT',
+      blurb: 'One-line installs; llama.cpp inside, and since 0.30 an MLX runner by default on Apple Silicon. Anthropic-compatible /v1/messages works with Claude Code.',
+      api: 'native + OpenAI + Anthropic', users: 'parallel',
+      check(hw, model, pick, o) {
+        if (!hasFmt(model, 'gguf')) return null;
+        const p = pick ? pick.est.placement : 'no';
+        let score = 58; const why = ['simplest path to “it answers”']; const caveats = [];
+        if (p === 'split' && model.kind === 'moe') { score -= 18; caveats.push('no expert-offload knob: Ollama only splits by layers, so RAM-resident MoE experts run slower than llama.cpp with --n-cpu-moe'); }
+        if (model.id === 'flash-next' && !isApple(hw)) { caveats.push('Flash-Next is in the library as an MLX (Mac-only) tag'); score -= 20; }
+        if (model.id === 'lfm25-24b') caveats.push('not in the Ollama library yet (released 13 Oct); pull the GGUF straight from hf.co');
+        const q = ggufTag(pick) || findQ(model, 'gguf');
+        const lib = { 'qwen38-27b': 'qwen3.8:27b', 'lfm25-8b': 'lfm2.5:8b', 'gemma4-26b': 'gemma4:26b', 'gemma4-12b': 'gemma4:12b', 'gemma4-e4b': 'gemma4:e4b', 'gemma4-e2b': 'gemma4:e2b', 'gemma4-31b': 'gemma4:31b', 'qwen36-35b': 'qwen3.6:35b-a3b' }[model.id];
+        const cmd = `curl -fsSL https://ollama.com/install.sh | sh   # Windows/macOS: installer from ollama.com\n` + (lib ? `ollama run ${lib}   # library tag (verify at ollama.com/library)\n` : '') + `ollama run hf.co/${q.repo}:${q.tag}   # any GGUF repo on Hugging Face\n# context: set OLLAMA_CONTEXT_LENGTH=${o.ctx}${o.kv8 ? '; KV cache: OLLAMA_KV_CACHE_TYPE=q8_0' : ''}`;
+        return { score, why, caveats, cmd };
+      },
+    },
+    {
+      id: 'mlx', name: 'mlx-lm (+ mlx-dspark / oMLX)', kind: 'general', url: 'https://github.com/ml-explore/mlx-lm', license: 'MIT',
+      blurb: 'Apple’s MLX runtime. mlx-lm 0.32 serves any MLX quant; mlx-dspark adds DSpark/DFlash drafters (Qwen3.8-27B 8-bit: 8 → 31 tok/s on an M4 Pro); oMLX adds continuous batching, MTP and an SSD prefix cache.',
+      api: 'OpenAI (mlx_lm.server); mlx-dspark adds Anthropic + Responses', users: 'single (mlx-lm) · multi (oMLX)',
+      check(hw, model, pick, o) {
+        if (!isApple(hw) || !hasFmt(model, 'mlx')) return null;
+        let score = 80; const why = ['native Metal/MLX path; usually the fastest general engine on a Mac']; const caveats = [];
+        if (model.kind === 'dense') why.push('dense model: add mlx-dspark for a 2–3× drafting gain');
+        else why.push('MoE: drafting gains are small (~1.1–1.3×); plain mlx-lm or oMLX is enough');
+        if (hw.ram <= 16) caveats.push('16 GB: use a 3-bit MLX quant or raise iogpu.wired_limit_mb');
+        const q = findQ(model, 'mlx');
+        return { score, why, caveats, cmd: `pip install -U mlx-lm\nmlx_lm.server --model ${q.repo} --port 8080   # OpenAI-compatible on :8080\n# drafting: pip install mlx-dspark  (github.com/ARahim3/mlx-dspark) · batching/MTP: github.com/jundot/omlx` };
+      },
+    },
+    {
+      id: 'lithos', name: 'lithos-metal', kind: 'specific', url: 'https://github.com/lithos-ai/lithos-metal', license: 'Apache-2.0',
+      blurb: 'LithosAI’s open-source engine (8 Oct 2026): generates Metal megakernels per layer and runs DSpark drafting on the GPU. Projects 168 tok/s for Qwen3.8-27B-NVFP4 on a 40-core M5 Max, ~1.8–2× MLX and Ollama.',
+      api: 'OpenAI Chat + Responses, Anthropic Messages, Ollama /api/chat; launchers for opencode / claude / codex / hermes', users: 'one generation at a time',
+      models: ['qwen38-27b', 'qwen36-35b'],
+      check(hw, model, pick, o) {
+        if (!isApple(hw) || !this.models.includes(model.id)) return null;
+        const why = ['purpose-built for exactly this model on exactly this chip family']; const caveats = ['needs macOS 26+ and an M3 or newer chip; measured recipes exist for M5 Max/Pro, M4 Pro, M3 Pro/Ultra, other chips fall back to unmeasured kernels'];
+        let score = 88;
+        if ((hw.appleGen || 0) < 3) return null;
+        if (hw.ram < 36) { score -= 30; caveats.push('27B NVFP4 (≈22 GB) + DSpark head + context wants 36 GB of unified memory or more; this box is too small'); }
+        else if (hw.ram < 48) caveats.push('36 GB: fits with a ~20K context per its README');
+        if (model.id === 'qwen36-35b') { score -= 15; caveats.push('35B-A3B integration is marked experimental'); }
+        if (['m5max', 'm5pro', 'm4pro', 'm3pro', 'm3ultra'].includes(hw.gpu.gen)) { score += 8; why.push('this chip has measured kernel recipes (M5 Max is the reference configuration)'); }
+        return { score, why, caveats, cmd: `brew install lithos-ai/tap/lithos-metal\nlithos-metal serve --model ${model.id === 'qwen38-27b' ? 'nvidia/Qwen3.8-27B-NVFP4' : 'nvidia/Qwen3.6-35B-A3B-NVFP4'} --max-context ${o.ctx}\n# then: lithos-metal claude   (or opencode / codex / hermes)` };
+      },
+    },
+    {
+      id: 'splash', name: 'Splash (Inco AI)', kind: 'specific', url: 'https://github.com/incoai/splash', license: 'Apache-2.0',
+      blurb: 'Per-model fused Metal kernels with a bundled DFlash2 drafter for Qwen3.8-27B and Qwen3.6-35B-A3B. Self-reported M5 Pro 48 GB: 74 tok/s (27B) and 210 tok/s (35B-A3B). Also ships as LM Studio’s experimental backend.',
+      api: 'OpenAI + Responses + Anthropic', users: 'batched (170 aggregate at ×4 reported)',
+      models: ['qwen38-27b', 'qwen36-35b'],
+      check(hw, model, pick, o) {
+        if (!isApple(hw) || !this.models.includes(model.id) || (hw.appleGen || 0) < 3) return null;
+        let score = 84; const why = ['fastest self-reported numbers for these two models on a Mac']; const caveats = ['macOS 26.4+ and 36 GB minimum per its README; young project (one public commit)'];
+        if (hw.ram < 36) { score -= 30; caveats.push('this box is under the 36 GB floor'); }
+        return { score, why, caveats, cmd: `brew install incoai/tap/splash\n# then follow the README: splash serves an OpenAI/Anthropic endpoint for ${model.name}` };
+      },
+    },
+    {
+      id: 'strata', name: 'Strata', kind: 'specific', url: 'https://github.com/Niko1221/Strata', license: 'MIT',
+      blurb: 'The one-click engine for Qwen3.8-Flash-Next on gaming PCs: hot experts in VRAM, all experts in RAM, n-gram table on the SSD, MTP drafting, OpenAI/Anthropic APIs and an MCP server. Measured 53–94 tok/s on an RTX 5070 12 GB + 64 GB RAM.',
+      api: 'OpenAI + Anthropic + Responses; MCP server', users: 'one request at a time by default ("parallel": 2 possible)',
+      models: ['flash-next'],
+      check(hw, model, pick, o) {
+        if (model.id !== 'flash-next') return null;
+        const dg = hw.gpu && hw.gpu.kind === 'dgpu';
+        const nv = dg && isNvidia(hw) && ['turing', 'ampere', 'ada', 'blackwell'].includes(hw.gpu.gen);
+        const amd = dg && isAmd(hw) && ['rdna2', 'rdna3', 'rdna4'].includes(hw.gpu.gen);
+        let score = 90; const why = ['installer picks the pack that fits your RAM and starts the server']; const caveats = [];
+        if (nv || amd) {
+          if (hw.gpu.vram < 12) { score -= 40; caveats.push('needs 12 GB of VRAM or more'); }
+        } else if (hw.unified && isAmd(hw)) { score -= 25; caveats.push('Strix Halo: community build from source on Linux (experimental)'); }
+        else if (isApple(hw)) { score -= 25; caveats.push('Mac: builds its Metal engine from source via ./setup.sh (experimental)'); }
+        else if (dg && hw.gpu.vendor === 'intel') { score -= 30; caveats.push('Intel Arc: build from source on Linux (experimental)'); }
+        else return null;
+        if (hw.ram < 32) { score -= 40; caveats.push('needs 32 GB RAM (Coder pack), 48 GB for IQ2_XS, 64 GB for every size'); }
+        else if (hw.ram < 48) why.push('32 GB: the “Coder” pack (half the experts removed) is the one that fits');
+        else if (hw.ram < 64) why.push('48 GB: IQ2_XS or Q2_0');
+        else if (hw.ram < 96) why.push('64 GB: everything up to IQ3_S fits in RAM; UD-IQ4_XS partly streams from SSD');
+        else why.push('96 GB+: UD-IQ4_XS / UD-Q4_K_XL stay in RAM');
+        caveats.push('70 GB download; the first start locks 35–55 GB of RAM for 1–3 minutes');
+        return { score, why, caveats, cmd: `# Paste into Claude Code / Cursor / Codex:\nSet up Strata on this PC for me: https://github.com/Niko1221/Strata - follow docs/AI_SETUP.md in that repository.\n# or by hand: download the repo → Windows: START-HERE.bat · Linux/Mac: ./setup.sh → app at http://127.0.0.1:8080 (OpenAI /v1, Anthropic /v1/messages)` };
+      },
+    },
+    {
+      id: 'infernix', name: 'Infernix', kind: 'specific', url: 'https://github.com/Wallawalla47/Infernix', license: 'Apache-2.0 (from NInfer)',
+      blurb: 'C++/CUDA engine grown from NInfer for RTX 50-series: Qwen3.8-27B NVFP4 with a hybrid prefix cache and DFlash2 (209 tok/s), and Flash-Next with experts pinned in RAM and the 52 GB n-gram volume on NVMe (140 tok/s). Its README says it was built mostly with Claude Opus 5.5.',
+      api: 'OpenAI Chat + Responses, Anthropic Messages, /v1/decide', users: '1–8 concurrent',
+      models: ['qwen38-27b', 'flash-next'],
+      check(hw, model, pick, o) {
+        if (!this.models.includes(model.id) || !isBlackwell(hw) || hw.unified) return null;
+        let score = 86; const why = ['fastest published single-GPU numbers for this model class']; const caveats = ['RTX 50-series only (CUDA 13, driver 580+); Windows build or Linux/WSL2 from source'];
+        if (model.id === 'qwen38-27b' && hw.gpu.vram < 30) { score -= 35; caveats.push('27B NVFP4 + KV wants a 32 GB card (RTX 5090)'); }
+        if (model.id === 'flash-next') {
+          if (hw.ram < 64) { score -= 35; caveats.push('keeps the routed experts in pinned RAM: the reference machine has 96 GB'); }
+          if (hw.gpu.vram < 24) { score -= 20; caveats.push('tuned on a 5090; a 16 GB Blackwell card leaves a small VRAM expert cache (not measured by the author)'); }
+          caveats.push('needs a fast NVMe for the 52 GB n-gram volume');
+        }
+        const cmd = model.id === 'qwen38-27b'
+          ? `infernix-serve.exe qwen3_8_27b_nvfp4-nvidia.ninfer --max-context ${Math.min(o.ctx * 4, 240000)} --max-concurrency 2 --spec dflash2 --draft-tokens 7 --lm-head-draft --ngram-draft-tokens 15 --ngram-min-match 12 --kv-dtype int8 --preserve-thinking --host-context-mib 52000 --prefill-chunk 4096 --kv-capacity auto --tolerant-tool-calls\n# model: Wallawalla47/Qwen3.8-27B-NVIDIA-NVFP4-NInferV3 (from the README)`
+          : `infernix-serve.exe Qwen3.8-Flash-Next-NVIDIA-NVFP4-Dense8-Infernix-00001-of-00003.infernix --ngram-volume Qwen3.8-Flash-Next-NVIDIA-NVFP4-Infernix.ngram --kv-dtype int8 --max-context 262144 --prefill-chunk 4096 --spec mtp --draft-tokens 4 --lm-head-draft --max-concurrency 2\n# model: Wallawalla47/Qwen3.8-Flash-Next-NVIDIA-NVFP4-Dense8-Infernix (from the README)`;
+        return { score, why, caveats, cmd };
+      },
+    },
+    {
+      id: 'ninfer', name: 'NInfer', kind: 'specific', url: 'https://github.com/Neroued/ninfer', license: 'Apache-2.0',
+      blurb: 'From-scratch C++/CUDA engine for one GPU: the RTX 5090. Official .ninfer artifacts for Qwen3.6-27B, Qwen3.8-27B (groupwise-int and NVFP4) and Qwen3.6-35B-A3B; MTP3 decode at 148–200 tok/s single stream, 920+ aggregate at 8 lanes.',
+      api: 'OpenAI Chat + Responses, Anthropic Messages', users: '1–8 lanes',
+      models: ['qwen38-27b', 'qwen36-35b'],
+      check(hw, model, pick, o) {
+        if (!this.models.includes(model.id) || !isBlackwell(hw) || hw.unified || hw.gpu.vram < 32) return null;
+        return { score: 82, why: ['the original of the Infernix line; Linux only; builds for sm_120a only'], caveats: ['no install target: run from the source build; 5090 only (the build rejects other GPUs)'], cmd: `hf download neroued/${model.id === 'qwen38-27b' ? 'Qwen3.8-27B-nvfp4-NInfer qwen3_8_27b_nvfp4.ninfer' : 'Qwen3.6-35B-A3B-NInfer qwen3_6_35b_a3b.ninfer'} --local-dir models\n./build/apps/ninfer-serve models/${model.id === 'qwen38-27b' ? 'qwen3_8_27b_nvfp4.ninfer' : 'qwen3_6_35b_a3b.ninfer'} --max-context 240000 --kv-capacity 240000 --max-concurrency 2 --kv-dtype fp8 --device-state-slots 2 --spec mtp --draft-tokens 3 --lm-head-draft --preserve-thinking` };
+      },
+    },
+    {
+      id: 'basalt', name: 'Basalt', kind: 'specific', url: 'https://github.com/jesdga95/basalt', license: 'MIT',
+      blurb: 'A fork of Strata stripped to one target: Linux + NVIDIA Blackwell (sm_120). One binary, .basalt packs on Hugging Face, experts that don’t fit VRAM live in RAM (or on a second GPU), web UI with live draft-accept rate.',
+      api: 'OpenAI + Anthropic (Python server)', users: '--parallel 1..8',
+      models: ['flash-next'],
+      check(hw, model, pick, o) {
+        if (model.id !== 'flash-next' || !isBlackwell(hw) || hw.unified) return null;
+        let score = 76; const caveats = ['Linux x86-64 + CUDA 13 + Blackwell only; build from source']; const why = ['cleaner, faster-evolving Strata derivative for Blackwell owners'];
+        if (hw.ram < 48) { score -= 30; caveats.push('needs enough RAM for the experts that miss VRAM (64 GB+ realistic)'); }
+        if (hw.gpu.vram < 24) { score -= 15; caveats.push('small VRAM leaves little room for the expert cache'); }
+        return { score, why, caveats, cmd: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j\npip install -r requirements.txt\nbin/basalt serve --config basalt_config.json   # packs: huggingface.co/jesdga/Qwen3.8-Flash-Next-Basalt` };
+      },
+    },
+    {
+      id: 'vllm', name: 'vLLM', kind: 'general', url: 'https://github.com/vllm-project/vllm', license: 'Apache-2.0',
+      blurb: 'The production server (v0.30, Sept 2026). Day-0 Qwen3.8, LFM2.5, Gemma 4 (MTP), NVFP4 on Blackwell, EAGLE/DFlash/DSpark drafting, high concurrency. Wants the whole model in VRAM; expert offload to RAM is still an open PR (#37190).',
+      api: 'OpenAI', users: 'high concurrency',
+      check(hw, model, pick, o) {
+        if (!isNvidia(hw)) return null;
+        if (!(hasFmt(model, 'fp8') || hasFmt(model, 'nvfp4') || hasFmt(model, 'bf16'))) return null;
+        const cap = vram(hw);
+        const cands = model.quants.filter(q => ['nvfp4', 'fp8', 'bf16'].includes(q.fmt) && (q.fmt !== 'nvfp4' || isBlackwell(hw)) && (q.fmt !== 'fp8' || ['ada', 'blackwell', 'gb10'].includes(hw.gpu.gen)));
+        const fit = cands.filter(q => q.gb - (q.tableGB || 0) + 3 <= cap).sort((a, b) => b.gb - a.gb)[0];
+        let score = 60; const why = []; const caveats = [];
+        if (!fit) { score -= 30; caveats.push(`none of its FP8/NVFP4/BF16 checkpoints fit ${cap.toFixed(0)} GB of GPU memory; vLLM does not offload experts to RAM yet`); }
+        else why.push(`${fit.tag} checkpoint (${fit.gb} GB) fits in GPU memory`);
+        if ((o.users || 1) > 1) { score += 18; why.push('continuous batching for many users'); }
+        if (model.id === 'flash-next') { score -= 25; caveats.push('needs ~130 GB of VRAM (NVFP4); datacenter only'); }
+        if (model.id === 'qwen38-27b' && hw.gpu.vram === 32) why.push('NVFP4 fits one 32 GB Blackwell card (use --enforce-eager and 32K ctx per the vLLM recipe)');
+        const q = fit || cands[0] || findQ(model, 'bf16');
+        return { score, why, caveats, cmd: `pip install -U vllm\nvllm serve ${q ? q.repo : model.hf} --max-model-len ${o.ctx}${model.id === 'qwen38-27b' && hw.gpu.vram <= 32 ? ' --enforce-eager' : ''}` };
+      },
+    },
+    {
+      id: 'sglang', name: 'SGLang', kind: 'general', url: 'https://github.com/sgl-project/sglang', license: 'Apache-2.0',
+      blurb: 'The other production server (0.5.21, 2 Oct 2026). DSpark drafting (LFM2.5 drafter “coming”), DFlash2, NVFP4 W4A16, SM120 fixes for RTX 50. Qwen3.8-27B NVFP4 + DFlash2 on one RTX 5090: 206 tok/s.',
+      api: 'OpenAI', users: 'high concurrency',
+      check(hw, model, pick, o) {
+        if (!isNvidia(hw)) return null;
+        if (!(hasFmt(model, 'fp8') || hasFmt(model, 'nvfp4') || hasFmt(model, 'bf16'))) return null;
+        const cap = vram(hw);
+        const cands = model.quants.filter(q => ['nvfp4', 'fp8', 'bf16'].includes(q.fmt) && (q.fmt !== 'nvfp4' || isBlackwell(hw)) && (q.fmt !== 'fp8' || ['ada', 'blackwell', 'gb10'].includes(hw.gpu.gen)));
+        const fit = cands.filter(q => q.gb - (q.tableGB || 0) + 3 <= cap).sort((a, b) => b.gb - a.gb)[0];
+        let score = 58; const why = []; const caveats = [];
+        if (!fit) { score -= 30; caveats.push(`no FP8/NVFP4/BF16 checkpoint fits ${cap.toFixed(0)} GB of GPU memory`); }
+        else why.push(`${fit.tag} (${fit.gb} GB) fits`);
+        if (model.id === 'qwen38-27b' && isBlackwell(hw) && hw.gpu.vram >= 32) { score += 24; why.push('206 tok/s reported with NVFP4 + DFlash2 on an RTX 5090'); }
+        if (model.id === 'lfm25-24b') why.push('Liquid’s 21K tok/s B300 number was measured with SGLang; DSpark drafter for it is announced');
+        if ((o.users || 1) > 1) score += 12;
+        if (model.id === 'flash-next') { score -= 25; caveats.push('datacenter-class VRAM needed'); }
+        const q = fit || cands[0] || findQ(model, 'bf16');
+        return { score, why, caveats, cmd: `pip install -U "sglang[all]"\npython -m sglang.launch_server --model-path ${q ? q.repo : model.hf} --context-length ${o.ctx} --port 30000\n# drafting: --speculative-algorithm DFLASH / DSPARK with the matching drafter repo (see release notes)` };
+      },
+    },
+    {
+      id: 'exl3', name: 'ExLlamaV3', kind: 'general', url: 'https://github.com/turboderp-org/exllamav3', license: 'MIT',
+      blurb: 'NVIDIA consumer-card specialist (v1.6.1, Oct 2026): EXL3 trellis quants at any bpw, 2–8-bit KV, Lfm2Moe + Gemma 4 + Flash-Next + Qwen3.8-27B (community EXL3), early ROCm. Gemma-4-26B at 3.1 bpw: 199.6 tok/s on a 5090.',
+      api: 'OpenAI via TabbyAPI', users: 'batched',
+      models: ['lfm25-24b', 'gemma4-26b', 'gemma4-31b', 'gemma4-12b', 'flash-next', 'qwen38-27b', 'lfm25-8b'],
+      check(hw, model, pick, o) {
+        if (!this.models.includes(model.id) || !isNvidia(hw) || hw.unified) return null;
+        const bits = 4.0; const gb = model.total * bits / 8;
+        let score = 62; const why = [`EXL3 at ~4 bpw ≈ ${gb.toFixed(1)} GB; pick any bpw to fit`]; const caveats = ['find a community EXL3 quant on Hugging Face (e.g. billmccartney/Qwen3.8-27B-exl3) or quantize yourself'];
+        if (gb + 2 > hw.gpu.vram) { if (model.kind === 'moe') caveats.push('experimental CPU offload (Linux) for experts; slower than llama.cpp’s offload'); else { score -= 20; caveats.push('dense model larger than VRAM at 4 bpw: drop to ~3 bpw'); } }
+        if (model.id === 'gemma4-26b' && isBlackwell(hw)) { score += 10; why.push('199.6 tok/s measured on an RTX 5090 at 3.10 bpw'); }
+        return { score, why, caveats, cmd: `pip install exllamav3   # + TabbyAPI for the OpenAI server\n# tabbyapi: model_name: <EXL3 quant dir>, draft_mode: mtp (Qwen3.8-27B)` };
+      },
+    },
+    {
+      id: 'ikllama', name: 'ik_llama.cpp', kind: 'general', url: 'https://github.com/ikawrakow/ik_llama.cpp', license: 'MIT',
+      blurb: 'llama.cpp fork tuned for CPU (AVX2/AVX-512/NEON) and CUDA MoE serving: IQ*_K quants, repacked rows, fused MoE/DeltaNet ops, smart expert reduction. Lists Flash-Next, Qwen3.6, Gemma 4 and LFM2.5.',
+      api: 'OpenAI (llama-server)', users: 'multi',
+      check(hw, model, pick, o) {
+        if (!hasFmt(model, 'gguf')) return null;
+        if (isApple(hw) || (hw.gpu && hw.gpu.vendor !== 'nvidia' && hw.gpu.kind !== 'igpu')) return null;
+        const p = pick ? pick.est.placement : 'no';
+        let score = 50; const why = []; const caveats = ['build from source only; Vulkan/Metal/ROCm unsupported'];
+        if (['cpu', 'split'].includes(p) && model.kind === 'moe') { score += 16; why.push('best-in-class CPU expert kernels when experts live in RAM'); }
+        return { score, why, caveats, cmd: `git clone https://github.com/ikawrakow/ik_llama.cpp && cd ik_llama.cpp && cmake -B build -DGGML_CUDA=${isNvidia(hw) ? 'ON' : 'OFF'} && cmake --build build -j\n./build/bin/llama-server -m <model.gguf> -c ${o.ctx} -fa${p === 'split' ? ' --n-cpu-moe <N>' : ''} -rtr` };
+      },
+    },
+    {
+      id: 'dmr', name: 'Docker Model Runner', kind: 'general', url: 'https://docs.docker.com/ai/model-runner/', license: 'Apache-2.0',
+      blurb: 'llama.cpp (vLLM on NVIDIA, vLLM-Metal on Mac) behind docker model run; GGUFs packaged as OCI artifacts. Liquid’s model card shows it as the one-liner for LFM2.5-24B-A2B.',
+      api: 'OpenAI', users: 'multi',
+      check(hw, model, pick, o) {
+        if (!hasFmt(model, 'gguf')) return null;
+        const q = ggufTag(pick) || findQ(model, 'gguf');
+        return { score: 46, why: ['fine for teams already on Docker Desktop'], caveats: ['no expert-offload tuning exposed'], cmd: `docker model run hf.co/${model.id === 'lfm25-24b' ? 'LiquidAI/LFM2.5-24B-A2B' : q.repo + ':' + q.tag}` };
+      },
+    },
+    {
+      id: 'q27', name: 'q27 / Quasar', kind: 'specific', url: 'https://github.com/signalnine/q27', license: 'MIT',
+      blurb: 'Hobby CUDA C++ (+Metal) engine for Qwen3.8-27B with its own 4-bit format, FP8 KV, MTP/DFlash2, prefix cache. Reports ~220 tok/s on a 5090 (DFlash2) and 102 tok/s on a 3090 at 131K context.',
+      api: 'OpenAI + Responses + Anthropic', users: 'continuous batching',
+      models: ['qwen38-27b'],
+      check(hw, model, pick, o) {
+        if (model.id !== 'qwen38-27b' || !((isNvidia(hw) && !hw.unified && hw.gpu.vram >= 20) || isApple(hw))) return null;
+        return { score: 56, why: ['long-context 27B on a 24 GB Ampere/Ada card (3090: 102 tok/s at 131K)'], caveats: ['alpha-quality hobby project (46 stars); build from source'], cmd: `git clone https://github.com/signalnine/q27 && cd q27 && make   # see README for the model download and server flags` };
+      },
+    },
+    {
+      id: 'q36', name: 'q36 / QuarkStar', kind: 'specific', url: 'https://github.com/rjohny55/q36', license: 'MIT',
+      blurb: 'Vulkan + Metal engine for Qwen3.6-35B-A3B (and Qwen3.8-27B) with SSD expert streaming for 16 GB machines: AMD BC-250 16 GB at 81.9 tok/s (q2), M2 Pro 16 GB at 37.8.',
+      api: 'OpenAI + Anthropic', users: 'single',
+      models: ['qwen36-35b', 'qwen38-27b'],
+      check(hw, model, pick, o) {
+        if (!this.models.includes(model.id)) return null;
+        if (!(hw.gpu)) return null;
+        let score = 44; const why = ['runs on Vulkan (AMD/Intel/NVIDIA) and Metal; streams experts from SSD when RAM is short']; const caveats = ['alpha; 2-bit packs for the speed numbers; weak MTP'];
+        if (hw.ram <= 16) { score += 14; why.push('one of the few engines aimed at 16 GB boxes'); }
+        return { score, why, caveats, cmd: `git clone https://github.com/rjohny55/q36   # see README (C, Vulkan/Metal)` };
+      },
+    },
+    {
+      id: 'ds4', name: 'ds4 / DwarfStar (antirez)', kind: 'specific', url: 'https://github.com/antirez/ds4', license: 'MIT',
+      blurb: 'Salvatore Sanfilippo’s C engine for DeepSeek V4, GLM 5.x and Qwen3.8-Flash-Next: Metal, CUDA (Spark) and ROCm (Strix Halo); SSD streaming of experts, Q2/IQ2 experts, MTP and DSpark; 23.8k stars.',
+      api: 'server + native agent', users: 'single',
+      models: ['flash-next'],
+      check(hw, model, pick, o) {
+        if (model.id !== 'flash-next' || !hw.unified) return null;
+        let score = 60; const why = ['built for big unified-memory machines (Mac Studio, Spark, Strix Halo)']; const caveats = ['no single-GPU consumer numbers published for Flash-Next'];
+        if (hw.ram < 96) { score -= 20; caveats.push('under 96 GB it leans on SSD streaming'); }
+        return { score, why, caveats, cmd: `git clone https://github.com/antirez/ds4 && cd ds4 && make   # see README for Flash-Next weights and the server` };
+      },
+    },
+    {
+      id: 'tensorfold', name: 'TensorFold', kind: 'general', url: 'https://github.com/ashhart/TensorFold', license: 'Apache-2.0',
+      blurb: 'MLX + CUDA (cc ≥ 8.9) engine for Qwen3.8-27B, Flash-Next (NVFP4/EXL3), Gemma-4-26B-A4B, GLM-5.3-Flash and DeepSeek-V4-Flash with MTP/DFlash2/DSpark drafts and up to 8 streams.',
+      api: 'OpenAI + Responses + Anthropic', users: 'up to 8 streams',
+      models: ['qwen38-27b', 'flash-next', 'gemma4-26b'],
+      check(hw, model, pick, o) {
+        if (!this.models.includes(model.id)) return null;
+        if (!(isApple(hw) || (isNvidia(hw) && ['ada', 'blackwell', 'gb10'].includes(hw.gpu.gen)))) return null;
+        return { score: 52, why: ['one engine for both Macs and Ada/Blackwell GPUs'], caveats: ['no throughput numbers on its README yet (~1k stars)'], cmd: `git clone https://github.com/ashhart/TensorFold   # see README` };
+      },
+    },
+    {
+      id: 'lemonade', name: 'AMD Lemonade', kind: 'general', url: 'https://github.com/lemonade-sdk/lemonade', license: 'Apache-2.0',
+      blurb: 'AMD’s wrapper for Ryzen AI / Strix Halo: llama.cpp (Vulkan/ROCm) plus the XDNA2 NPU through FastFlowLM, OpenAI + Anthropic + Ollama-style APIs.',
+      api: 'OpenAI + Anthropic + Ollama', users: 'multi',
+      check(hw, model, pick, o) {
+        if (!hasFmt(model, 'gguf') || !isAmd(hw) || hw.gpu.kind === 'dgpu') return null;
+        return { score: 52, why: ['the vendor-blessed path on Ryzen AI boxes; uses the NPU for small models'], caveats: ['the heavy lifting is still llama.cpp underneath'], cmd: `# Windows installer / pip: github.com/lemonade-sdk/lemonade → pull ${model.name} (GGUF) → OpenAI server on :8000` };
+      },
+    },
+    {
+      id: 'openvino', name: 'OpenVINO GenAI (Intel)', kind: 'general', url: 'https://github.com/openvinotoolkit/openvino.genai', license: 'Apache-2.0',
+      blurb: 'Intel’s runtime for Core Ultra iGPU/NPU; OpenVINO 2026.1 added a preview llama.cpp backend and showed LFM2-24B-A2B INT4 on an Arc iGPU. IPEX-LLM was archived in Jan 2026.',
+      api: 'OpenAI (model server)', users: 'multi',
+      check(hw, model, pick, o) {
+        if (!(hw.gpu && hw.gpu.vendor === 'intel')) return null;
+        return { score: 40, why: ['uses the Intel iGPU/NPU natively'], caveats: ['model coverage lags llama.cpp Vulkan; LFM2.5 unverified (LFM2-24B INT4 preview exists)'], cmd: `pip install openvino-genai   # see openvinotoolkit.org for the ${model.name} INT4 export` };
+      },
+    },
+  ];
+
+  function rankEngines(hw, model, pick, o) {
+    const out = [];
+    for (const e of ENGINES) {
+      let res = null;
+      try { res = e.check(hw, model, pick, o); } catch (err) { res = null; }
+      if (!res) continue;
+      const anchors = model.anchors.filter(a => a.engine.toLowerCase().includes(e.name.split(' ')[0].toLowerCase().replace('/', '')) || (e.id === 'llamacpp' && a.engine.toLowerCase().includes('llama.cpp')) || (e.id === 'mlx' && /mlx|omlx/.test(a.engine.toLowerCase())));
+      out.push(Object.assign({ engine: e, anchors }, res));
+    }
+    return out.sort((a, b) => b.score - a.score);
+  }
+
+  function fmtInr(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+  function priceText(hw) {
+    if (hw.priceInr) return (hw.priceInr[0] === hw.priceInr[1] ? fmtInr(hw.priceInr[0]) : fmtInr(hw.priceInr[0]) + '–' + fmtInr(hw.priceInr[1])) + (hw.estimate ? ' (est.)' : '');
+    if (hw.priceUsd) return (hw.priceUsd[0] === hw.priceUsd[1] ? '$' + hw.priceUsd[0].toLocaleString('en-US') : '$' + hw.priceUsd[0].toLocaleString('en-US') + '–' + hw.priceUsd[1].toLocaleString('en-US')) + ' (US)';
+    return hw.priceNote || '—';
+  }
+  function priceSort(hw) {
+    if (hw.priceInr) return (hw.priceInr[0] + hw.priceInr[1]) / 2;
+    if (hw.priceUsd) return ((hw.priceUsd[0] + hw.priceUsd[1]) / 2) * 92;
+    return 0;
+  }
+
+  return { DATA_DATE, MODELS, HARDWARE, ENGINES, CLASS, estimate, plan, qualityTier, bpw, rankEngines, placementLabel, priceText, priceSort, unifiedUsable, fmtInr, formatOk };
+}
+if (typeof window !== 'undefined') window.createShila = createShila;
+
+</script>
+<script>
+/* SHILA UI */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const S = window.createShila(window.SHILA_DATA);
+  const B = window.ShilaBox;
+  const CTX = [4096, 8192, 16384, 32768, 65536, 131072, 262144];
+  const USERS = [1, 2, 4, 8];
+  const FLOORS = [['any', 'Any'], ['usable', '3-bit+'], ['good', '4-bit+'], ['excellent', '5-bit+']];
+
+  const state = { customSpec: 'RTX 3060 12GB, 32GB DDR4, Windows', hwId: 'ser8-32', modelId: 'lfm25-24b', ctx: 32768, users: 1, floor: 'any', kv8: false, vision: false, wired: true, lazy: true, tab: 'fit', ov: {} };
+  try { const saved = JSON.parse(localStorage.getItem('shila.state') || 'null'); if (saved && typeof saved === 'object') Object.assign(state, saved); } catch (e) { /* storage unavailable */ }
+  const save = () => { try { localStorage.setItem('shila.state', JSON.stringify(state)); } catch (e) { /* ignore */ } };
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const f1 = (n) => (Math.round(n * 10) / 10).toFixed(1);
+  const fgb = (n) => (n >= 100 ? Math.round(n) : f1(n)) + ' GB';
+  const tok = (n) => n <= 0 ? '—' : (n < 10 ? f1(n) : Math.round(n).toLocaleString('en-IN'));
+  const opts = () => ({ ctx: state.ctx, users: state.users, kv8: state.kv8, vision: state.vision, wired: state.wired, tableLazy: state.lazy, floor: state.floor });
+  const STATUS_TXT = { ok: 'Runs well', tight: 'Runs, little headroom', ssd: 'Runs slowly from SSD', no: 'Does not fit', na: 'Not for this hardware' };
+
+  function currentHw() {
+    let base = S.HARDWARE.find(h => h.id === state.hwId) || S.HARDWARE[0];
+    if (state.hwId === 'custom') {
+      const spec = B.parseSpecString(state.customSpec || '') || { ram_gb: 16 };
+      base = B.describeBox(spec); base.name = 'Your machine: ' + (state.customSpec || '16 GB'); base.group = 'Custom';
+    }
+    const hw = JSON.parse(JSON.stringify(base));
+    const ov = state.ov[state.hwId] || {};
+    if (ov.ram) hw.ram = ov.ram;
+    if (ov.ramBw) { hw.ramBw = ov.ramBw; hw.ramBwEff = ov.ramBw; }
+    if (hw.gpu && hw.gpu.kind === 'dgpu') { if (ov.vram != null) hw.gpu.vram = ov.vram; if (ov.vramBw) hw.gpu.vramBw = ov.vramBw; }
+    if (ov.os) hw.os = ov.os;
+    if (ov.price) { hw.priceInr = [ov.price, ov.price]; hw.priceNote = 'your price'; hw.estimate = false; }
+    hw.edited = Object.keys(ov).length > 0;
+    return hw;
+  }
+  const currentModel = () => S.MODELS.find(m => m.id === state.modelId) || S.MODELS[0];
+
+  /* ---------- rail ---------- */
+  function buildSelects() {
+    const groups = [...new Set(S.HARDWARE.map(h => h.group))];
+    $('hwSel').innerHTML = '<optgroup label="Your machine"><option value="custom">Describe your machine…</option></optgroup>' + groups.map(g => `<optgroup label="${esc(g)}">` + S.HARDWARE.filter(h => h.group === g).map(h => `<option value="${h.id}">${esc(h.name)}</option>`).join('') + '</optgroup>').join('');
+    const fams = [...new Set(S.MODELS.map(m => m.family))];
+    $('mSel').innerHTML = fams.map(g => `<optgroup label="${esc(g)}">` + S.MODELS.filter(m => m.family === g).map(m => `<option value="${m.id}">${esc(m.name)} · ${m.kind === 'moe' ? `${m.total}B / ${m.active}B active` : `${m.total}B dense`}</option>`).join('') + '</optgroup>').join('');
+    $('ctxSeg').innerHTML = CTX.map(c => `<button type="button" data-v="${c}">${c >= 1024 ? (c / 1024) + 'K' : c}</button>`).join('');
+    $('usersSeg').innerHTML = USERS.map(u => `<button type="button" data-v="${u}">${u}</button>`).join('');
+    $('floorSeg').innerHTML = FLOORS.map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join('');
+  }
+  function syncRail() {
+    $('hwSel').value = state.hwId; $('mSel').value = state.modelId;
+    $('customWrap').hidden = state.hwId !== 'custom';
+    if (document.activeElement !== $('customSpec')) $('customSpec').value = state.customSpec || '';
+    for (const b of $('ctxSeg').children) b.setAttribute('aria-pressed', String(+b.dataset.v === state.ctx));
+    for (const b of $('usersSeg').children) b.setAttribute('aria-pressed', String(+b.dataset.v === state.users));
+    for (const b of $('floorSeg').children) b.setAttribute('aria-pressed', String(b.dataset.v === state.floor));
+    $('optKv8').checked = state.kv8; $('optVision').checked = state.vision; $('optWired').checked = state.wired; $('optLazy').checked = state.lazy;
+    const hw = currentHw(), m = currentModel();
+    $('optLazyWrap').hidden = m.id !== 'flash-next';
+    $('optWired').parentElement.hidden = !(hw.gpu && hw.gpu.kind === 'apple');
+    $('optVision').parentElement.hidden = !m.vision;
+    const ov = state.ov[state.hwId] || {};
+    $('eRam').value = ov.ram || hw.ram; $('eRamBw').value = ov.ramBw || hw.ramBwEff;
+    $('eVram').value = hw.gpu && hw.gpu.kind === 'dgpu' ? hw.gpu.vram : ''; $('eVramBw').value = hw.gpu && hw.gpu.kind === 'dgpu' ? hw.gpu.vramBw : '';
+    $('eVram').disabled = $('eVramBw').disabled = !(hw.gpu && hw.gpu.kind === 'dgpu');
+    $('eOs').value = hw.os; $('ePrice').value = ov.price || '';
+    $('boxPrice').textContent = hw.priceInr || hw.priceUsd ? S.priceText(hw) : (hw.priceNote || '');
+    const gpuTxt = hw.gpu ? (hw.gpu.kind === 'dgpu' ? `${hw.gpu.name} · ${hw.gpu.vram} GB · ${hw.gpu.vramBw} GB/s` : hw.gpu.name) : 'no GPU';
+    $('hwChips').innerHTML = [`${hw.ram} GB ${hw.unified ? 'unified' : 'RAM'}`, `${hw.ramBwEff} GB/s${hw.ramBwEff !== hw.ramBw ? ' (measured; ' + hw.ramBw + ' spec)' : ''}`, gpuTxt, hw.os, hw.edited ? 'edited' : ''].filter(Boolean).map(t => `<span class="chip">${esc(t)}</span>`).join('');
+    $('hwNote').textContent = (hw.notes || '') + (hw.priceNote && hw.priceInr ? ` Price: ${hw.priceNote}.` : '') + (hw.assumptions && hw.assumptions.length ? ' Assumed: ' + hw.assumptions.join('; ') + '.' : '');
+    $('mChips').innerHTML = [m.kind === 'moe' ? `${m.total}B total · ${m.active}B active` : `${m.total}B dense`, `${m.layers} layers`, `KV ${(m.kvBytes / 1024).toFixed(0)} KB/token`, `${(m.ctxMax / 1024).toFixed(0)}K context`, m.vision ? 'vision' : 'text only', m.license, m.released].map(t => `<span class="chip">${esc(t)}</span>`).join('');
+    $('mWhy').innerHTML = `${esc(m.why)} <span class="muted">${esc(m.arch)}</span> <a href="https://huggingface.co/${esc(m.hf)}" target="_blank" rel="noopener">model card ↗</a>`;
+  }
+
+  /* ---------- fit report ---------- */
+  function memBar(est, cap) {
+    const w = est.mainGB || 0, k = est.kvGB || 0, o = est.ovhGB || 0, total = Math.max(cap || 0, w + k + o, 0.001);
+    const pct = (x) => (100 * x / total).toFixed(1) + '%';
+    return `<div class="memline"><div class="bar"><i class="w" style="width:${pct(w)}"></i><i class="k" style="width:${pct(k)}"></i><i class="o" style="width:${pct(o)}"></i></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>weights ${fgb(w)}</span><span><i style="background:var(--info)"></i>KV cache ${fgb(k)}</span><span><i style="background:var(--ink-3)"></i>runtime ${fgb(o)}</span><span class="muted">${cap ? 'of ' + fgb(cap) + ' available' : ''}${est.ssdGB ? ' · ' + fgb(est.ssdGB) + ' on SSD' : ''}</span></div></div>`;
+  }
+  function anchorsHtml(m, hw, limit) {
+    const list = m.anchors.slice(0, limit || 99);
+    if (!list.length) return '<div class="muted">No published measurements collected for this model yet.</div>';
+    return `<div class="anchors">${list.map(a => `<div class="a${a.hwId === hw.id ? ' hit' : ''}"><b>${tok(a.toks)} tok/s</b><span>${esc(a.hw)}</span><span class="muted">${esc(a.quant)} · ${esc(a.engine)}</span><a href="${esc(a.src)}" target="_blank" rel="noopener">${esc(a.by)} ↗</a></div>`).join('')}</div>`;
+  }
+  function renderFit() {
+    const hw = currentHw(), m = currentModel(), o = opts();
+    const P = S.plan(m, hw, o);
+    const best = P.best;
+    const R = best ? S.rankEngines(hw, m, best, o) : S.rankEngines(hw, m, null, o);
+    const topEngine = R[0];
+    const v = $('verdict');
+    if (!best) {
+      const smallest = P.rows.filter(r => r.est.status !== 'na').sort((a, b) => a.q.gb - b.q.gb)[0];
+      const capTxt = smallest && smallest.est.capacityGB ? `${fgb(smallest.est.usedGB || smallest.est.need)} needed vs ${fgb(smallest.est.capacityGB)} available` : '';
+      v.className = 'verdict no';
+      v.innerHTML = `<span class="status no">${STATUS_TXT.no}</span><h2>${esc(m.name)} does not fit ${esc(hw.name)}</h2>
+        <p style="margin:0;color:var(--ink-2)">Even the smallest usable file (${smallest ? esc(smallest.q.tag) + ', ' + fgb(smallest.q.gb) : '—'}) needs more memory than this box has${capTxt ? ' (' + capTxt + ')' : ''}. Lower the quality floor, reserve less context, pick a smaller model from the <a href="#" data-goto="box">What this box runs</a> tab, or a bigger box from <a href="#" data-goto="cheapest">Cheapest box</a>.</p>
+        <div class="eyebrow">Published measurements for this model</div>${anchorsHtml(m, hw, 6)}`;
+    } else {
+      const e = best.est, q = best.q;
+      v.className = 'verdict ' + e.status;
+      const promptSec = e.prefill > 0 ? state.ctx / e.prefill : 0;
+      const engineLine = topEngine ? `<a href="#engines-list">${esc(topEngine.engine.name)}</a>` : '—';
+      const headline = e.status === 'ok' ? `${m.name} runs well on this box` : e.status === 'tight' ? `${m.name} fits, with little headroom` : `${m.name} runs here, but streams from the SSD`;
+      const measuredHere = m.anchors.filter(a => a.hwId === hw.id);
+      v.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span class="status ${e.status}">${STATUS_TXT[e.status]}</span><span class="chip">${esc(S.placementLabel(e.placement))}</span>${hw.priceInr || hw.priceUsd ? `<span class="chip">${esc(S.priceText(hw))}</span>` : ''}</div>
+        <h2>${esc(headline)}</h2>
+        <p style="margin:0;color:var(--ink-2)">Recommended file: <b>${esc(q.tag)}</b> (${fgb(q.gb)}, ${esc(best.tier.label)}${q.note ? ' — ' + esc(q.note) : ''}) from <span class="mono">${esc(q.repo)}</span>. Best engine here: ${engineLine}.${P.fastest && P.fastest.q !== q ? ` Fastest that still fits: ${esc(P.fastest.q.tag)} at ~${tok(P.fastest.est.decodeShort)} tok/s.` : ''}</p>
+        <div class="stats">
+          <div class="stat"><div class="v">~${tok(e.decodeShort)} <small>tok/s</small></div><div class="k">decode, short chats (estimate)</div></div>
+          <div class="stat"><div class="v">~${tok(e.decode)} <small>tok/s</small></div><div class="k">decode with ${(state.ctx / 1024).toFixed(0)}K of context in play</div></div>
+          <div class="stat"><div class="v">~${tok(e.prefill)} <small>tok/s</small></div><div class="k">prompt reading · a ${(state.ctx / 1024).toFixed(0)}K prompt ≈ ${promptSec >= 60 ? (promptSec / 60).toFixed(1) + ' min' : Math.round(promptSec) + ' s'}</div></div>
+          <div class="stat"><div class="v">${fgb(e.usedGB || e.need)}</div><div class="k">memory used${e.capacityGB ? ' of ' + fgb(e.capacityGB) : ''}</div></div>
+        </div>
+        ${memBar(e, e.capacityGB)}
+        ${e.notes.length ? `<ul class="tight">${e.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+        <div class="eyebrow">Published measurements${measuredHere.length ? ' — this box is highlighted' : ''}</div>${anchorsHtml(m, hw, 7)}
+        <div class="note">Estimates come from a bandwidth model calibrated on the cited numbers (±30%). Drafting (MTP/DFlash/DSpark) is extra: 1.5–2.5× on dense models, ~1.2× on MoEs.</div>`;
+    }
+    v.querySelectorAll('[data-goto]').forEach(a => a.addEventListener('click', (ev) => { ev.preventDefault(); setTab(a.dataset.goto); }));
+
+    // ladder
+    const rows = P.rows.slice().sort((a, b) => a.q.gb - b.q.gb);
+    $('ladder').innerHTML = `<thead><tr><th>Quant</th><th>Repo</th><th class="num">Size</th><th>Quality</th><th>Placement</th><th class="num">Short</th><th class="num">Full ctx</th><th class="num">Prompt</th><th class="num">Memory</th><th>Status</th></tr></thead><tbody>` +
+      rows.map(r => {
+        const e = r.est, isPick = best && r.q === best.q, dim = e.status === 'no' || e.status === 'na';
+        const maxTok = Math.max(...rows.map(x => x.est.decodeShort || 0), 1);
+        return `<tr class="${isPick ? 'pick' : ''}${dim ? ' dim' : ''}"><td><b>${esc(r.q.tag)}</b>${r.q.qat ? ' <span class="tier t4">QAT</span>' : ''}${r.q.note ? `<div class="note">${esc(r.q.note)}</div>` : ''}</td><td class="mono" style="font-size:12px">${esc(r.q.repo)}</td><td class="num">${fgb(r.q.gb)}</td><td><span class="tier t${r.tier.rank}">${esc(r.tier.label)}</span> <span class="muted num">${S.bpw(m, r.q).toFixed(1)} bpw</span></td><td>${esc(S.placementLabel(e.placement))}${e.notes && e.notes.length && !dim ? `<div class="note">${esc(e.notes[0])}</div>` : ''}${dim && e.notes && e.notes.length ? `<div class="note">${esc(e.notes[0])}</div>` : ''}</td><td class="num">${dim ? '—' : `<span class="spark" style="width:${Math.max(4, 60 * (e.decodeShort || 0) / maxTok)}px"></span>${tok(e.decodeShort)}`}</td><td class="num">${dim ? '—' : tok(e.decode)}</td><td class="num">${dim ? '—' : tok(e.prefill)}</td><td class="num">${dim ? fgb(e.need || r.q.gb) : fgb(e.usedGB || e.need)}</td><td><span class="status ${e.status}">${STATUS_TXT[e.status]}</span></td></tr>`;
+      }).join('') + '</tbody>';
+
+    // engines
+    const good = R.filter(x => x.score >= 25), poor = R.filter(x => x.score < 25);
+    $('engines').id = 'engines';
+    $('engines').innerHTML = `<div id="engines-list"></div>` + good.map((x, i) => {
+      const e = x.engine;
+      return `<article class="engine${i === 0 ? ' top' : ''}">
+        <header><span class="rank">${i === 0 ? 'BEST MATCH' : '#' + (i + 1)}</span><h3>${esc(e.name)}</h3><span class="kind ${e.kind}">${e.kind === 'specific' ? 'model-specific' : 'general'}</span><span class="muted" style="font-size:12px">${esc(e.license)}</span><a href="${esc(e.url)}" target="_blank" rel="noopener" style="font-size:12.5px">repo ↗</a></header>
+        <p>${esc(e.blurb)}</p>
+        <div class="two">
+          <div>${x.why.length ? `<div class="eyebrow">Why here</div><ul class="tight">${x.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}</div>
+          <div>${x.caveats.length ? `<div class="eyebrow">Mind</div><ul class="tight">${x.caveats.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}</div>
+        </div>
+        ${x.anchors.length ? `<div class="eyebrow">Measured with this engine</div>${anchorsHtml({ anchors: x.anchors }, hw, 4)}` : ''}
+        <div class="eyebrow">Install & run</div>
+        <div class="cmd"><button class="btn small" type="button" data-copy>Copy</button><pre>${esc(x.cmd)}</pre></div>
+        <div class="note">API: ${esc(e.api)} · ${esc(e.users)}</div>
+      </article>`;
+    }).join('') + (poor.length ? `<div class="note">Not practical for this combination: ${poor.map(x => `<b>${esc(x.engine.name)}</b> (${esc(x.caveats[0] || 'does not apply')})`).join(' · ')}</div>` : '');
+    $('engines').querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => copyText(b.nextElementSibling.textContent)));
+  }
+
+  /* ---------- box report ---------- */
+  function renderBox() {
+    const hw = currentHw(), o = opts();
+    $('boxReportH').textContent = `What ${hw.name} can run`;
+    const rows = S.MODELS.map(m => { const P = S.plan(m, hw, o); const R = P.best ? S.rankEngines(hw, m, P.best, o) : []; return { m, P, top: R[0] }; });
+    const order = { ok: 0, tight: 1, ssd: 2, no: 3 };
+    rows.sort((a, b) => { const sa = a.P.best ? a.P.best.est.status : 'no', sb = b.P.best ? b.P.best.est.status : 'no'; return (order[sa] - order[sb]) || ((b.P.best ? b.P.best.est.decodeShort : 0) - (a.P.best ? a.P.best.est.decodeShort : 0)); });
+    $('boxTable').innerHTML = `<thead><tr><th>Model</th><th>Pick</th><th class="num">Size</th><th>Placement</th><th class="num">Short</th><th class="num">Full ctx</th><th class="num">Prompt</th><th>Status</th><th>Best engine</th></tr></thead><tbody>` + rows.map(({ m, P, top }) => {
+      const b = P.best;
+      if (!b) return `<tr class="dim"><td><b>${esc(m.name)}</b></td><td colspan="6">no quant fits (${fgb(Math.min(...m.quants.map(q => q.gb)))} smallest)</td><td><span class="status no">Does not fit</span></td><td></td></tr>`;
+      const e = b.est;
+      return `<tr><td><b>${esc(m.name)}</b><div class="note">${m.kind === 'moe' ? m.active + 'B active' : 'dense'}</div></td><td>${esc(b.q.tag)} <span class="tier t${b.tier.rank}">${esc(b.tier.label)}</span></td><td class="num">${fgb(b.q.gb)}</td><td>${esc(S.placementLabel(e.placement))}</td><td class="num">${tok(e.decodeShort)}</td><td class="num">${tok(e.decode)}</td><td class="num">${tok(e.prefill)}</td><td><span class="status ${e.status}">${STATUS_TXT[e.status]}</span></td><td>${top ? esc(top.engine.name) : ''}</td></tr>`;
+    }).join('') + '</tbody>';
+  }
+
+  /* ---------- cheapest box ---------- */
+  function renderCheapest() {
+    const m = currentModel(), o = opts();
+    $('cheapH').textContent = `Cheapest box for ${m.name}`;
+    const rows = S.HARDWARE.map(hw => ({ hw, P: S.plan(m, hw, o), price: S.priceSort(hw) }));
+    rows.sort((a, b) => (a.price || 1e12) - (b.price || 1e12));
+    let flagged = false;
+    $('cheapTable').innerHTML = `<thead><tr><th>Box</th><th class="num">Price</th><th>Pick</th><th>Placement</th><th class="num">Short</th><th class="num">Full ctx</th><th class="num">Prompt</th><th>Status</th></tr></thead><tbody>` + rows.map(({ hw, P }) => {
+      const b = P.best;
+      const price = S.priceText(hw);
+      if (!b) return `<tr class="dim"><td>${esc(hw.name)}</td><td class="num">${esc(price)}</td><td colspan="5">no quant fits</td><td><span class="status no">Does not fit</span></td></tr>`;
+      const e = b.est; let cls = '';
+      if (!flagged && e.status === 'ok' && e.decodeShort >= 20 && hw.priceInr) { cls = 'pick'; flagged = true; }
+      return `<tr class="${cls}"><td><b>${esc(hw.name)}</b>${cls ? '<div class="note">cheapest comfortable pick (≥20 tok/s, headroom, Indian price)</div>' : ''}</td><td class="num">${esc(price)}</td><td>${esc(b.q.tag)} <span class="tier t${b.tier.rank}">${esc(b.tier.label)}</span></td><td>${esc(S.placementLabel(e.placement))}</td><td class="num">${tok(e.decodeShort)}</td><td class="num">${tok(e.decode)}</td><td class="num">${tok(e.prefill)}</td><td><span class="status ${e.status}">${STATUS_TXT[e.status]}</span></td></tr>`;
+    }).join('') + '</tbody>';
+  }
+
+  /* ---------- atlas ---------- */
+  const ATLAS = [
+    ['llama.cpp', 'general', 'thousands incl. all 13 here', 'NVIDIA · AMD · Intel · Apple · CPU', 'GGUF (incl. NVFP4 type)', 'brew / winget / releases', 'https://github.com/ggml-org/llama.cpp'],
+    ['Ollama', 'general', 'library + any hf.co GGUF', 'NVIDIA · AMD · Apple (MLX) · CPU · Vulkan', 'GGUF · MLX', 'installer', 'https://ollama.com'],
+    ['LM Studio', 'general', 'GGUF + MLX catalogs', 'NVIDIA · AMD · Intel · Apple', 'GGUF · MLX (+ Splash backend)', 'installer', 'https://lmstudio.ai'],
+    ['Docker Model Runner', 'general', 'any GGUF (OCI)', 'as llama.cpp / vLLM', 'GGUF', 'Docker Desktop', 'https://docs.docker.com/ai/model-runner/'],
+    ['ik_llama.cpp', 'general', 'llama.cpp set + IQ*_K quants', 'CPU · CUDA', 'GGUF', 'source', 'https://github.com/ikawrakow/ik_llama.cpp'],
+    ['vLLM', 'general', 'day-0 Qwen3.8, LFM2.5, Gemma 4, Nemotron', 'NVIDIA (consumer needs whole model in VRAM) · AMD Instinct', 'safetensors BF16/FP8/NVFP4/AWQ', 'pip / Docker', 'https://github.com/vllm-project/vllm'],
+    ['vLLM-Metal', 'general', 'MLX-format models', 'Apple', 'MLX safetensors', 'brew', 'https://docs.vllm.ai/projects/vllm-metal'],
+    ['SGLang', 'general', 'Qwen3.8, LFM2.5 (+DSpark), Gemma 4, Nemotron', 'NVIDIA (SM120 ok) · Intel Xeon CPU', 'BF16/FP8/NVFP4', 'pip / Docker', 'https://github.com/sgl-project/sglang'],
+    ['TensorRT-LLM / Dynamo', 'general', 'datacenter catalog', 'NVIDIA Linux, datacenter-first', 'TRT engines, NVFP4', 'pip', 'https://github.com/NVIDIA/TensorRT-LLM'],
+    ['mlx-lm', 'general', 'any MLX quant', 'Apple', 'MLX', 'pip', 'https://github.com/ml-explore/mlx-lm'],
+    ['mlx-dspark', 'general', 'MLX + DSpark/DFlash drafters', 'Apple', 'MLX', 'pip', 'https://github.com/ARahim3/mlx-dspark'],
+    ['oMLX', 'general', 'MLX incl. Flash-Next + MTP', 'Apple', 'MLX', 'source', 'https://github.com/jundot/omlx'],
+    ['ExLlamaV3', 'general', 'Lfm2Moe, Gemma 4, Flash-Next, Qwen3.8-27B (community)', 'NVIDIA (early ROCm)', 'EXL3', 'pip', 'https://github.com/turboderp-org/exllamav3'],
+    ['KTransformers', 'general', 'DeepSeek V3/V4, Kimi K2, Qwen3-MoE, GLM-5 (not Qwen3.6/3.8, Gemma 4, LFM)', 'GPU + big-RAM CPU (AMX/AVX-512/AVX2)', 'safetensors', 'pip', 'https://github.com/kvcache-ai/ktransformers'],
+    ['mistral.rs', 'general', 'Gemma 4 and others (Qwen3.8/LFM not listed)', 'CUDA · Metal · CPU', 'safetensors · GGUF · UQFF', 'cargo', 'https://github.com/EricLBuehler/mistral.rs'],
+    ['AMD Lemonade', 'general', 'llama.cpp set + NPU models', 'AMD Ryzen AI / Strix Halo', 'GGUF', 'installer / pip', 'https://github.com/lemonade-sdk/lemonade'],
+    ['FastFlowLM (ROCm)', 'general', 'NPU builds incl. Gemma 4', 'AMD XDNA2 NPUs', 'own', 'MSI', 'https://github.com/FastFlowLM/FastFlowLM'],
+    ['OpenVINO GenAI', 'general', 'Intel exports (LFM2-24B INT4 preview)', 'Intel CPU / iGPU / NPU', 'OpenVINO IR', 'pip', 'https://github.com/openvinotoolkit/openvino.genai'],
+    ['Qualcomm GenieX (ex-Nexa)', 'general', 'GGUF via llama.cpp + QAIRT', 'Snapdragon NPU', 'GGUF · QAIRT', 'SDK', 'https://github.com/NexaAI/nexa-sdk'],
+    ['WebLLM', 'general', 'Qwen3.5 ≤9B class', 'any browser with WebGPU', 'MLC', 'npm', 'https://github.com/mlc-ai/web-llm'],
+    ['TensorFold', 'general', 'Qwen3.8-27B, Flash-Next, Gemma-4-26B, GLM-5.3, DeepSeek-V4-Flash', 'Apple · NVIDIA cc≥8.9', 'MLX · NVFP4 · EXL3', 'source', 'https://github.com/ashhart/TensorFold'],
+    ['Strata', 'specific', 'Qwen3.8-Flash-Next', 'NVIDIA RTX 20–50 ≥12 GB · AMD RX 6800+/7700+/9060+ · 32–64 GB RAM', 'GGUF (ISTA GSQ-RCO, Unsloth)', 'one-click', 'https://github.com/Niko1221/Strata'],
+    ['Basalt', 'specific', 'Qwen3.8-Flash-Next', 'Linux + Blackwell (sm_120)', '.basalt packs', 'source', 'https://github.com/jesdga95/basalt'],
+    ['NInfer', 'specific', 'Qwen3.6-27B, Qwen3.8-27B, Qwen3.6-35B-A3B', 'RTX 5090 only, Linux', '.ninfer (NVFP4 / groupwise-int)', 'source', 'https://github.com/Neroued/ninfer'],
+    ['Infernix', 'specific', 'Qwen3.8-27B, Flash-Next (+uncensored, Swift)', 'RTX 50-series, Windows/Linux', '.infernix / .ninfer (NVFP4)', 'release zip / source', 'https://github.com/Wallawalla47/Infernix'],
+    ['lithos-metal', 'specific', 'Qwen3.8-27B (NVFP4, 4-bit), Qwen3.6-35B-A3B (experimental)', 'Apple M3+ · macOS 26+', 'NVFP4 safetensors · MLX 4-bit', 'brew', 'https://github.com/lithos-ai/lithos-metal'],
+    ['Splash', 'specific', 'Qwen3.8-27B, Qwen3.6-35B-A3B', 'Apple M3+ · macOS 26.4+ · 36 GB+', 'own packs', 'brew', 'https://github.com/incoai/splash'],
+    ['ds4 / DwarfStar', 'specific', 'DeepSeek V4/V4.1, GLM 5.2/5.3, Flash-Next', 'Metal · CUDA (Spark) · ROCm (Strix Halo)', 'own (SSD-streamed experts)', 'make', 'https://github.com/antirez/ds4'],
+    ['q27 / Quasar', 'specific', 'Qwen3.8-27B, Qwen3.6-27B, Bonsai-2 27B', 'NVIDIA · Metal', 'own 4-bit', 'make', 'https://github.com/signalnine/q27'],
+    ['q36 / QuarkStar', 'specific', 'Qwen3.6-35B-A3B, Qwen3.8-27B', 'Vulkan · Metal, 16 GB class', 'own 2/4-bit', 'source', 'https://github.com/rjohny55/q36'],
+    ['qwen27-engine', 'specific', 'Qwen3.8-27B', '2× RTX 5060 Ti, Windows', 'GGUF IQ3_S + MTP', 'source', 'https://github.com/avallavall/qwen27-engine'],
+    ['QwFNfer', 'specific', 'Flash-Next', 'RTX 4080 SUPER 16 GB + 30 GB RAM + NVMe', 'GGUF', 'source', 'https://github.com/Apolog1ze-Dev/QwFNfer'],
+    ['qwen-flash-next-8gb', 'specific', 'Flash-Next NVFP4', 'RTX 5060 8 GB + Gen5 NVMe', 'NVFP4', 'source', 'https://github.com/helgard-orlm/qwen-flash-next-8gb'],
+    ['gewell', 'specific', 'Gemma 4 31B', 'Blackwell sm_120', 'own', 'source', 'https://github.com/leDissolution/gewell'],
+    ['AIMA-AMD395', 'specific', 'Qwen3.6-35B-A3B BF16', 'Strix Halo, Windows HIP', 'BF16', 'source', 'https://github.com/Approaching-AI/AIMA-AMD395-Qwen36-35B-Windows-Engine'],
+    ['TokenSpeed (LightSeek)', 'general', 'Qwen3.8 / Flash-Next day-0', 'datacenter', '—', 'enterprise', 'https://github.com/lightseekorg/tokenspeed'],
+  ];
+  function renderAtlas() {
+    $('atlas').innerHTML = `<thead><tr><th>Engine</th><th>Scope</th><th>Runs</th><th>Hardware</th><th>Formats</th><th>Install</th></tr></thead><tbody>` + ATLAS.map(r => `<tr><td><a href="${esc(r[6])}" target="_blank" rel="noopener"><b>${esc(r[0])}</b></a></td><td><span class="kind ${r[1]}">${r[1] === 'specific' ? 'model-specific' : 'general'}</span></td><td>${esc(r[2])}</td><td>${esc(r[3])}</td><td>${esc(r[4])}</td><td>${esc(r[5])}</td></tr>`).join('') + '</tbody>';
+  }
+
+  /* ---------- sources ---------- */
+  function renderSources() {
+    const urls = new Map();
+    const add = (u, label) => { if (u && !urls.has(u)) urls.set(u, label); };
+    for (const m of S.MODELS) { add('https://huggingface.co/' + m.hf, m.name + ' model card'); for (const a of m.anchors) add(a.src, `${m.name}: ${a.by} (${a.hw})`); }
+    for (const e of S.ENGINES) add(e.url, e.name + ' repository');
+    [['https://www.lithosai.com/blog/lithos-metal', 'LithosAI: Open-sourcing lithos-metal (8 Oct 2026)'], ['https://huggingface.co/blog/LiquidAI/lfm25-24b-a2b', 'Liquid AI: LFM2.5-24B-A2B release post (13 Oct 2026)'], ['https://huggingface.co/LiquidAI/LFM2.5-24B-A2B-GGUF', 'LFM2.5-24B-A2B GGUF sizes'], ['https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF', 'Flash-Next GGUF sizes and n-gram table discussions'], ['https://github.com/ggml-org/llama.cpp/releases/tag/v0.6.0', 'llama.cpp v0.6.0 release'], ['https://github.com/ggml-org/llama.cpp/pull/29887', 'llama.cpp expert cache PR'], ['https://www.hardware-corner.net/qwen3-8-27b-hardware-tests/', 'hardware-corner Qwen3.8-27B tests'], ['https://github.com/geerlingguy/ai-benchmarks', 'Jeff Geerling ai-benchmarks (Pi, N150, Jetson)'], ['https://byteshape.com/blogs/Qwen3-30B-A3B-Instruct-2507/', 'ByteShape: Qwen3-30B-A3B on a Pi 5 16 GB'], ['https://kofler.info/gpt-oss-20b-auf-einer-igpu-780m-ausfuehren/', 'kofler.info: gpt-oss-20b on a Radeon 780M'], ['https://github.com/ggml-org/llama.cpp/discussions/27519', 'llama.cpp discussion: Qwen3.6-35B-A3B on UM790 Pro'], ['https://grigio.org/benchmarking-llama-cpp-backends-on-intel-panther-lake-vulkan-vs-sycl-vs-openvino-vs-cpu/', 'grigio.org: Panther Lake backends'], ['https://github.com/visorcraft/strix-halo-llm-perf', 'visorcraft: Strix Halo LLM performance'], ['https://raw.githubusercontent.com/ggml-org/llama.cpp/master/benches/dgx-spark/dgx-spark.md', 'llama.cpp DGX Spark benchmarks'], ['https://www.macrumors.com/2026/08/25/apple-announces-2026-mac-mini/', 'MacRumors: 2026 Mac mini (M6 / M5 Pro)'], ['https://www.tomshardware.com/raspberry-pi/component-shortages-drive-raspberry-pi-prices-up-by-up-to-23-percent-escalating-lpddr4-lpddr5-costs-trigger-the-third-price-hike-of-the-year', "Tom's Hardware: 2026 memory-shortage price hikes"], ['https://pricehistory.app/p/gmktec-evo-x2-ai-mini-pc-ryzen-whO3Vxmb', 'GMKtec EVO-X2 Amazon.in price history'], ['https://price-history.in/product/nvidia-dgx-spark-20-core-arm-DdCsTGSj', 'DGX Spark Amazon.in price history'], ['https://arxiv.org/pdf/2605.19537', 'The Silent Hyperparameter: a survey of 200 inference engines (Jan 2026)']].forEach(([u, l]) => add(u, l));
+    $('sources').innerHTML = [...urls.entries()].map(([u, l]) => `<div>${esc(l)} — <a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a></div>`).join('');
+  }
+
+  /* ---------- copy plan ---------- */
+  function planMarkdown() {
+    const hw = currentHw(), m = currentModel(), o = opts();
+    const P = S.plan(m, hw, o); const b = P.best;
+    const lines = [`# SHILA plan — ${m.name} on ${hw.name}`, `Data as of ${S.DATA_DATE}. Context ${state.ctx} · users ${state.users} · KV ${state.kv8 ? 'q8_0' : 'f16'}${state.vision ? ' · vision' : ''}.`, ''];
+    if (!b) { lines.push(`**Does not fit.** Smallest file ${fgb(Math.min(...m.quants.map(q => q.gb)))}.`); return lines.join('\n'); }
+    const e = b.est;
+    lines.push(`**Verdict:** ${STATUS_TXT[e.status]} — ${S.placementLabel(e.placement)}.`);
+    lines.push(`**Pick:** ${b.q.tag} (${fgb(b.q.gb)}, ${b.tier.label}) from \`${b.q.repo}\`.`);
+    lines.push(`**Estimated decode:** ~${tok(e.decodeShort)} tok/s short chats, ~${tok(e.decode)} tok/s at ${state.ctx} context. **Prompt:** ~${tok(e.prefill)} tok/s. **Memory:** ${fgb(e.usedGB || e.need)}${e.capacityGB ? ' of ' + fgb(e.capacityGB) : ''}.`);
+    if (e.notes.length) lines.push(e.notes.map(n => `- ${n}`).join('\n'));
+    const R = S.rankEngines(hw, m, b, o).filter(x => x.score >= 25).slice(0, 3);
+    lines.push('', '## Engines');
+    for (const x of R) lines.push(`### ${x.engine.name} (${x.engine.kind === 'specific' ? 'model-specific' : 'general'}) — ${x.engine.url}`, x.why.map(w => `- ${w}`).join('\n'), x.caveats.length ? x.caveats.map(w => `- ⚠ ${w}`).join('\n') : '', '```', x.cmd, '```', '');
+    if (m.anchors.length) { lines.push('## Published measurements'); for (const a of m.anchors.slice(0, 8)) lines.push(`- ${a.toks} tok/s — ${a.hw} — ${a.quant} — ${a.engine} — ${a.src}`); }
+    lines.push('', '_Estimates ±30% from a bandwidth model calibrated on the cited measurements; drafting not included._');
+    return lines.join('\n');
+  }
+  function copyText(text) {
+    const done = () => toast('Copied');
+    const fallback = () => { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('Select and copy manually'); } document.body.removeChild(ta); };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  }
+  let toastT; function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1600); }
+
+  /* ---------- tabs & events ---------- */
+  function setTab(id) {
+    state.tab = id; save();
+    document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === id)));
+    ['fit', 'box', 'cheapest', 'engines', 'mcp'].forEach(t => { $('tab-' + t).hidden = t !== id; });
+    render();
+  }
+  function render() {
+    syncRail();
+    if (state.tab === 'fit') renderFit(); else if (state.tab === 'box') renderBox(); else if (state.tab === 'cheapest') renderCheapest(); else if (state.tab === 'engines') renderAtlas();
+  }
+  function wire() {
+    $('hwSel').addEventListener('change', e => { state.hwId = e.target.value; save(); render(); });
+    $('mSel').addEventListener('change', e => { state.modelId = e.target.value; save(); render(); });
+    $('ctxSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.ctx = +b.dataset.v; save(); render(); });
+    $('usersSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.users = +b.dataset.v; save(); render(); });
+    $('floorSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.floor = b.dataset.v; save(); render(); });
+    $('optKv8').addEventListener('change', e => { state.kv8 = e.target.checked; save(); render(); });
+    $('optVision').addEventListener('change', e => { state.vision = e.target.checked; save(); render(); });
+    $('optWired').addEventListener('change', e => { state.wired = e.target.checked; save(); render(); });
+    $('optLazy').addEventListener('change', e => { state.lazy = e.target.checked; save(); render(); });
+    const ovSet = (k, v) => { state.ov[state.hwId] = state.ov[state.hwId] || {}; if (v === '' || v == null || Number.isNaN(v)) delete state.ov[state.hwId][k]; else state.ov[state.hwId][k] = v; if (!Object.keys(state.ov[state.hwId]).length) delete state.ov[state.hwId]; save(); render(); };
+    $('eRam').addEventListener('change', e => ovSet('ram', +e.target.value));
+    $('eRamBw').addEventListener('change', e => ovSet('ramBw', +e.target.value));
+    $('eVram').addEventListener('change', e => ovSet('vram', e.target.value === '' ? '' : +e.target.value));
+    $('eVramBw').addEventListener('change', e => ovSet('vramBw', +e.target.value));
+    $('eOs').addEventListener('change', e => ovSet('os', e.target.value));
+    $('ePrice').addEventListener('change', e => ovSet('price', e.target.value === '' ? '' : +e.target.value));
+    document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+    $('copyPlan').addEventListener('click', () => copyText(planMarkdown()));
+    let typing; $('customSpec').addEventListener('input', e => { state.customSpec = e.target.value; clearTimeout(typing); typing = setTimeout(() => { save(); render(); }, 250); });
+    document.querySelectorAll('[data-goto-tab]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.gotoTab)));
+    document.querySelectorAll('#tab-mcp [data-copy]').forEach(b => b.addEventListener('click', () => copyText(b.nextElementSibling.textContent)));
+    if (/^#(fit|box|cheapest|engines|mcp)$/.test(location.hash)) state.tab = location.hash.slice(1);
+  }
+
+  $('dataDate').textContent = 'data as of ' + S.DATA_DATE;
+  $('counts').textContent = `${S.MODELS.length} models · ${S.HARDWARE.length} boxes · ${S.ENGINES.length} engines ranked`;
+  buildSelects(); wire(); renderSources(); setTab(state.tab || 'fit');
+})();
+
+</script>
+</body>
+</html>

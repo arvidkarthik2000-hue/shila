@@ -1,0 +1,7 @@
+SHILA — local-AI fitment planner
+Copyright 2026 Dr. Arvind Karthikeyan
+
+This product includes data compiled from public sources (model cards, engine
+READMEs, benchmark write-ups and retail listings). Each data point carries its
+source URL in data/*.json. Engine names and model names belong to their owners;
+their mention does not imply endorsement.

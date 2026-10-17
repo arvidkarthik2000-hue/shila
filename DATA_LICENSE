@@ -1,0 +1,10 @@
+The data in the data/ directory (models.json, hardware.json, meta.json) and the
+measurements in test/calibration.json are licensed under the Creative Commons
+Attribution 4.0 International licence (CC BY 4.0):
+https://creativecommons.org/licenses/by/4.0/legalcode
+
+Attribution: "SHILA by Dr. Arvind Karthikeyan, github.com/arvidkarthik2000-hue/shila"
+
+Individual facts (file sizes, benchmark results, prices) were collected from the
+public sources linked next to each entry; those sources keep their own terms.
+The code in this repository is licensed separately under Apache-2.0 (see LICENSE).

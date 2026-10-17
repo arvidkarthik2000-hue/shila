@@ -1,0 +1,320 @@
+<title>Shila Fitment Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a workbench — a control rail on the left (box · model · run settings) and a scrolling report on the right; stacks to one column on phones. */
+:root {
+  --bg: #f1f2ee;          /* cool stone */
+  --surface: #ffffff;
+  --surface-2: #e7e9e3;
+  --ink: #1a1e21;
+  --ink-2: #4a535b;
+  --ink-3: #7b8690;
+  --line: #d3d7cf;
+  --accent: #9a4f1e;      /* copper */
+  --accent-ink: #ffffff;
+  --accent-soft: #f2e4d8;
+  --ok: #2b7a4b; --ok-soft: #dcefe2;
+  --warn: #8f6400; --warn-soft: #f6ebc9;
+  --bad: #b2392a; --bad-soft: #f6dbd6;
+  --info: #2a5c86; --info-soft: #dae7f2;
+  --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141719; --surface: #1c2023; --surface-2: #24292d; --ink: #ebede8; --ink-2: #b2b9b4; --ink-3: #7d8886; --line: #30373b;
+    --accent: #e0905a; --accent-ink: #1a1e21; --accent-soft: #3a2a1e;
+    --ok: #6fcf97; --ok-soft: #1c3426; --warn: #e6b84a; --warn-soft: #3a3118; --bad: #f07c6a; --bad-soft: #3f221e; --info: #80b4e2; --info-soft: #1d2e3c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141719; --surface: #1c2023; --surface-2: #24292d; --ink: #ebede8; --ink-2: #b2b9b4; --ink-3: #7d8886; --line: #30373b;
+  --accent: #e0905a; --accent-ink: #1a1e21; --accent-soft: #3a2a1e;
+  --ok: #6fcf97; --ok-soft: #1c3426; --warn: #e6b84a; --warn-soft: #3a3118; --bad: #f07c6a; --bad-soft: #3f221e; --info: #80b4e2; --info-soft: #1d2e3c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14.5px; line-height: 1.5; padding-inline: 16px; padding-block: 0 48px; }
+a { color: var(--accent); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h2 { font-size: 18px; font-weight: 700; font-variation-settings: 'wdth' 100; letter-spacing: -0.01em; }
+h3 { font-size: 15px; font-weight: 700; }
+.eyebrow { font-family: var(--body); font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.num { font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1280px; margin: 0 auto; }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding-block: 22px 14px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.mark { width: 46px; height: 46px; flex: none; }
+.brand h1 { font-size: 34px; font-weight: 800; font-variation-settings: 'wdth' 118; letter-spacing: 0.04em; line-height: 1; }
+.brand .tag { color: var(--ink-2); margin-top: 4px; font-size: 13.5px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+.chip.accent { background: var(--accent-soft); color: var(--accent); }
+
+/* bench */
+.bench { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 22px; padding-top: 18px; align-items: start; }
+@media (max-width: 860px) { .bench { grid-template-columns: 1fr; } .rail { position: static !important; } }
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); display: grid; gap: 14px; max-height: calc(100vh - 24px); overflow: auto; padding-right: 2px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.panel header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+select, input[type=number], input[type=text] { width: 100%; font: inherit; font-size: 14px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+select:focus, input:focus, button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+label.lbl { font-size: 12px; color: var(--ink-2); display: grid; gap: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button { font: inherit; font-size: 12.5px; padding: 5px 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.toggles { display: grid; gap: 6px; }
+.toggles label { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.toggles input { margin-top: 3px; accent-color: var(--accent); }
+.edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+details > summary { cursor: pointer; font-size: 12.5px; color: var(--accent); font-weight: 600; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: '▸ '; } details[open] > summary::before { content: '▾ '; }
+.note { font-size: 12.5px; color: var(--ink-3); }
+.btn { font: inherit; font-size: 13px; font-weight: 600; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.small { font-size: 12px; padding: 4px 9px; }
+
+/* report */
+.report { display: grid; gap: 18px; min-width: 0; }
+[role=tabpanel], [role=tabpanel] > * { min-width: 0; }
+.verdict p, .verdict .mono { overflow-wrap: anywhere; }
+td.mono { white-space: nowrap; }
+.status { white-space: nowrap; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { font: inherit; font-family: var(--display); font-weight: 700; font-size: 14px; padding: 10px 14px; border: 0; background: none; color: var(--ink-3); cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; margin-bottom: -1px; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.verdict { background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--ok); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 12px; }
+.verdict.tight { border-left-color: var(--warn); } .verdict.ssd { border-left-color: var(--warn); } .verdict.no { border-left-color: var(--bad); }
+.verdict h2 { font-size: 22px; line-height: 1.2; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.status.ok { background: var(--ok-soft); color: var(--ok); } .status.tight, .status.ssd { background: var(--warn-soft); color: var(--warn); } .status.no, .status.na { background: var(--bad-soft); color: var(--bad); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.stat { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.stat .v { font-family: var(--display); font-size: 24px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.stat .k { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+.memline { display: grid; gap: 6px; }
+.bar { height: 10px; border-radius: 6px; background: var(--surface-2); overflow: hidden; display: flex; }
+.bar i { display: block; height: 100%; }
+.bar .w { background: var(--accent); } .bar .k { background: var(--info); } .bar .o { background: var(--ink-3); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--ink-2); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+ul.tight { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 13.5px; color: var(--ink-2); }
+.anchors { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.anchors .a { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.anchors .a b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.anchors .a.hit { background: var(--ok-soft); border-radius: 6px; padding: 3px 8px; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.pick { background: var(--accent-soft); }
+tr.dim { color: var(--ink-3); }
+.spark { display: inline-block; height: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; margin-right: 6px; }
+.tier { font-size: 11.5px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
+.tier.t5, .tier.t4 { background: var(--ok-soft); color: var(--ok); } .tier.t2, .tier.t1, .tier.t0 { background: var(--warn-soft); color: var(--warn); }
+
+.engines { display: grid; gap: 12px; }
+.engine { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 10px; min-width: 0; }
+.engine.top { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.engine header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.engine header h3 { font-size: 17px; }
+.kind { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; }
+.kind.general { background: var(--info-soft); color: var(--info); } .kind.specific { background: var(--accent-soft); color: var(--accent); }
+.rank { font-family: var(--display); font-weight: 800; font-size: 13px; color: var(--accent); letter-spacing: 0.04em; }
+.engine p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+.cmd { position: relative; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+.cmd pre { margin: 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; white-space: pre; }
+.cmd .btn { position: absolute; top: 6px; right: 6px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+@media (max-width: 640px) { .two { grid-template-columns: 1fr; } .brand h1 { font-size: 28px; } }
+.muted { color: var(--ink-3); }
+.sources { font-size: 13px; color: var(--ink-2); display: grid; gap: 4px; }
+.sources a { word-break: break-all; }
+.how { font-size: 13.5px; color: var(--ink-2); display: grid; gap: 8px; }
+.how code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+.credit { display: grid; gap: 4px; padding-block: 24px 8px; margin-top: 24px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); }
+.linkchip { border: 0; cursor: pointer; font: inherit; font-size: 12px; background: var(--accent-soft); color: var(--accent); }
+a.chip { text-decoration: none; }
+.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="30" width="40" height="8" rx="2" fill="var(--ink-3)"/><rect x="8" y="21" width="32" height="8" rx="2" fill="var(--ink-2)"/><rect x="13" y="12" width="22" height="8" rx="2" fill="var(--accent)"/><rect x="19" y="5" width="10" height="6" rx="2" fill="var(--ink)"/></svg>
+      <div>
+        <h1>SHILA</h1>
+        <div class="tag">Local AI fitment planner — which model fits which box, how fast, and with which engine.</div>
+      </div>
+    </div>
+    <div class="meta">
+      <span class="chip" id="dataDate">data as of —</span>
+      <span class="chip" id="counts"></span>
+      <a class="chip" href="https://github.com/arvidkarthik2000-hue/shila" target="_blank" rel="noopener">GitHub ↗</a>
+      <button class="chip linkchip" type="button" data-goto-tab="mcp">Use in Claude / Cursor (MCP)</button>
+      <span class="chip accent">estimates ±30%; measured anchors cited</span>
+    </div>
+  </header>
+
+  <main class="bench">
+    <aside class="rail">
+      <section class="panel" aria-labelledby="boxH">
+        <header><h2 id="boxH">Box</h2><span class="note" id="boxPrice"></span></header>
+        <label class="lbl">Hardware preset
+          <select id="hwSel" aria-label="Hardware preset"></select>
+        </label>
+        <div id="customWrap" hidden>
+          <label class="lbl">Describe your machine
+            <input type="text" id="customSpec" placeholder="e.g. RTX 3060 12GB, 32GB DDR4, Windows" autocomplete="off">
+          </label>
+          <div class="note">Plain words work: “Mac mini M4 Pro 48GB”, “32GB DDR5 Ryzen 7 8845HS”, “Raspberry Pi 5 16GB”, “RTX 4090 + 64GB DDR5”. Fine-tune with Edit box. The command-line tool can detect your machine automatically.</div>
+        </div>
+        <div class="chips" id="hwChips"></div>
+        <div class="note" id="hwNote"></div>
+        <details id="hwEdit">
+          <summary>Edit box</summary>
+          <div class="edit-grid" style="margin-top:8px">
+            <label class="lbl">RAM (GB)<input type="number" id="eRam" min="4" max="1024" step="1"></label>
+            <label class="lbl">RAM bandwidth (GB/s)<input type="number" id="eRamBw" min="5" max="2000" step="1"></label>
+            <label class="lbl">GPU VRAM (GB)<input type="number" id="eVram" min="0" max="192" step="1"></label>
+            <label class="lbl">VRAM bandwidth (GB/s)<input type="number" id="eVramBw" min="0" max="5000" step="1"></label>
+            <label class="lbl">OS<select id="eOs"><option value="linux">Linux</option><option value="windows">Windows</option><option value="macos">macOS</option></select></label>
+            <label class="lbl">Price (₹, optional)<input type="number" id="ePrice" min="0" step="1000"></label>
+          </div>
+          <div class="note" style="margin-top:6px">Discrete-GPU boxes: VRAM fields apply. Unified boxes (Mac, Strix Halo, Spark): RAM is the GPU memory.</div>
+        </details>
+      </section>
+
+      <section class="panel" aria-labelledby="modelH">
+        <header><h2 id="modelH">Model</h2></header>
+        <label class="lbl">Open-weight model
+          <select id="mSel" aria-label="Model"></select>
+        </label>
+        <div class="chips" id="mChips"></div>
+        <div class="note" id="mWhy"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="runH">
+        <header><h2 id="runH">Run settings</h2></header>
+        <div class="lbl">Context window reserved
+          <div class="seg" id="ctxSeg" role="group" aria-label="Context length"></div>
+        </div>
+        <div class="lbl">Simultaneous users
+          <div class="seg" id="usersSeg" role="group" aria-label="Users"></div>
+        </div>
+        <div class="lbl">Lowest quality you accept
+          <div class="seg" id="floorSeg" role="group" aria-label="Quality floor"></div>
+        </div>
+        <div class="toggles">
+          <label><input type="checkbox" id="optKv8"> <span>8-bit KV cache (halves context memory; tiny quality cost)</span></label>
+          <label><input type="checkbox" id="optVision"> <span>Need image input (loads the vision projector)</span></label>
+          <label><input type="checkbox" id="optWired" checked> <span>Mac: raise the GPU memory limit (<span class="mono">iogpu.wired_limit_mb</span>)</span></label>
+          <label id="optLazyWrap"><input type="checkbox" id="optLazy" checked> <span>Flash-Next: stream the 28.8 GB n-gram table from the SSD instead of RAM</span></label>
+        </div>
+        <button class="btn primary" id="copyPlan">Copy this plan as Markdown</button>
+      </section>
+    </aside>
+
+    <section class="report">
+      <nav class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="fit" aria-selected="true">Fit report</button>
+        <button class="tab" role="tab" data-tab="box" aria-selected="false">What this box runs</button>
+        <button class="tab" role="tab" data-tab="cheapest" aria-selected="false">Cheapest box for this model</button>
+        <button class="tab" role="tab" data-tab="engines" aria-selected="false">Engine atlas</button>
+        <button class="tab" role="tab" data-tab="mcp" aria-selected="false">MCP &amp; CLI</button>
+      </nav>
+
+      <div id="tab-fit" role="tabpanel" style="display:grid;gap:18px">
+        <section class="verdict" id="verdict"></section>
+        <section>
+          <h2 style="margin-bottom:8px">Every quant of this model on this box</h2>
+          <div class="note" style="margin-bottom:8px">Highlighted row is the recommended pick. “Short” is decode speed in a short chat; “full” is with the whole reserved context in play. Rows marked “not for this hardware” are file formats this box cannot execute.</div>
+          <div class="tablewrap"><table id="ladder"></table></div>
+        </section>
+        <section>
+          <h2 style="margin-bottom:8px">Engines, ranked for this box and model</h2>
+          <div class="engines" id="engines"></div>
+        </section>
+      </div>
+
+      <div id="tab-box" role="tabpanel" hidden style="display:grid;gap:12px">
+        <h2 id="boxReportH"></h2>
+        <div class="note">Each model at its recommended quant for this box and these run settings. Sorted by speed.</div>
+        <div class="tablewrap"><table id="boxTable"></table></div>
+      </div>
+
+      <div id="tab-cheapest" role="tabpanel" hidden style="display:grid;gap:12px">
+        <h2 id="cheapH"></h2>
+        <div class="note">Every box in the catalogue, cheapest first, at the best quant that fits it. Prices are Indian listings from October 2026 (DRAM shortage pricing) unless marked US or estimated.</div>
+        <div class="tablewrap"><table id="cheapTable"></table></div>
+      </div>
+
+      <div id="tab-engines" role="tabpanel" hidden style="display:grid;gap:12px">
+        <h2>The 2026 engine landscape</h2>
+        <div class="note">General engines run thousands of models; model-specific engines run one or two, usually 1.5–3× faster on one hardware class, with their own weight formats. Almost every 2026 specialist was built with an AI coding agent around Qwen3.8-27B or Qwen3.8-Flash-Next.</div>
+        <div class="tablewrap"><table id="atlas"></table></div>
+      </div>
+
+      <div id="tab-mcp" role="tabpanel" hidden style="display:grid;gap:14px">
+        <h2>Ask your AI assistant what your machine can run</h2>
+        <p class="muted" style="margin:0">SHILA ships an MCP server. Add it to Claude Desktop, Claude Code, Cursor or any MCP client and ask in plain words: “can I run LFM2.5-24B-A2B on this laptop?”, “what is the cheapest box for Qwen3.8-27B at 30 tok/s?”. It can inspect the computer it runs on, reads any Hugging Face model, and answers with the quant, the speed estimate and the engine commands. Needs Node.js 18 or newer; nothing else to install.</p>
+        <section class="panel"><h3>Claude Code</h3><div class="cmd"><button class="btn small" type="button" data-copy>Copy</button><pre>claude mcp add shila -- npx -y github:arvidkarthik2000-hue/shila mcp</pre></div></section>
+        <section class="panel"><h3>Claude Desktop, Cursor, Windsurf, VS Code (mcp.json / claude_desktop_config.json)</h3><div class="cmd"><button class="btn small" type="button" data-copy>Copy</button><pre>{
+  "mcpServers": {
+    "shila": {
+      "command": "npx",
+      "args": ["-y", "github:arvidkarthik2000-hue/shila", "mcp"]
+    }
+  }
+}</pre></div></section>
+        <section class="panel"><h3>Tools it exposes</h3>
+          <ul class="tight">
+            <li><b>check_compatibility</b>: model + machine → verdict, best quant file, estimated tok/s, memory, ranked engines with commands, published measurements</li>
+            <li><b>what_can_i_run</b>: machine → every catalogue model ranked by speed</li>
+            <li><b>cheapest_hardware</b>: model + minimum tok/s (+ budget in ₹) → boxes, cheapest first</li>
+            <li><b>probe_this_machine</b>: detects RAM, bandwidth, CPU, GPU and VRAM of the computer the server runs on (read-only)</li>
+            <li><b>list_models</b>, <b>list_hardware</b>, <b>list_engines</b></li>
+          </ul>
+        </section>
+        <section class="panel"><h3>Command line</h3><div class="cmd"><button class="btn small" type="button" data-copy>Copy</button><pre>npx -y github:arvidkarthik2000-hue/shila fit LiquidAI/LFM2.5-24B-A2B          # detects this machine
+npx -y github:arvidkarthik2000-hue/shila fit qwen3.8-27b --on "RTX 4090, 64GB DDR5"
+npx -y github:arvidkarthik2000-hue/shila can-run --on "Mac mini M4 16GB"
+npx -y github:arvidkarthik2000-hue/shila cheapest lfm2.5-24b --min-tps 20 --budget 150000</pre></div></section>
+      </div>
+
+      <details class="panel">
+        <summary>How the numbers are computed</summary>
+        <div class="how" style="margin-top:8px">
+          <div><b>Memory.</b> weights (the real file size of that quant) + KV cache (<code>2 × attention layers × KV heads × head dim × 2 bytes × context × users</code>, from each model’s config) + a runtime allowance (0.8 GB + 0.6 GB per 32K of context). Discrete GPUs keep 0.6 GB free; Windows reserves 4 GB of RAM, Linux 3. Macs can wire ~70–78% of unified memory to the GPU by default, or RAM − 3.5 GB with the sysctl raised. Strix Halo / Spark keep 12–16 GB for the OS.</div>
+          <div><b>Placement.</b> In order: all in VRAM → unified memory → MoE experts in RAM with the rest on the GPU (llama.cpp <code>--n-cpu-moe</code>) → dense layers split → CPU / iGPU over RAM → experts streamed from SSD. Flash-Next’s 28.8 GB n-gram table is counted as SSD-resident when the toggle is on (llama.cpp <code>--tensor-read-lazy auto</code>).</div>
+          <div><b>Decode speed.</b> Each token reads the active weights (active params × bytes per param of that file) plus the KV cache in play; <code>ms = bytes ÷ (bandwidth × efficiency) + layers × per-layer overhead + attention compute</code>. Efficiencies: CUDA 0.88, Metal 0.88, Strix/Spark 0.88, iGPU Vulkan 0.65, desktop CPU 0.45 (MoE) / 0.60 (dense), N-series CPU 0.45, Pi-class 0.55–0.70; RAM-resident experts 0.50. Architecture multipliers: LFM conv blocks ×1.15, Qwen GDN ×0.95, Flash-Next ×0.70. Calibrated against the cited measurements; expect ±30%. Drafting (MTP / DFlash / DSpark) is not included in the estimate; it adds 1.5–2.5× on dense models and 1.1–1.3× on MoEs.</div>
+          <div><b>Prompt speed.</b> effective TFLOPS of the compute unit ÷ (2 × active params), halved when the n-gram table streams from disk and reduced to 60% when experts live in RAM.</div>
+          <div><b>What is not modelled.</b> Expert caches (llama.cpp <code>--moe-cache-mib</code>, Strata, Infernix) that keep hot experts in VRAM, thermal limits on small boxes, PCIe generation, and concurrency throughput. Users only change the memory budget.</div>
+        </div>
+      </details>
+      <details class="panel">
+        <summary>Sources</summary>
+        <div class="sources" id="sources" style="margin-top:8px"></div>
+      </details>
+    </section>
+  </main>
+</div>
+<footer class="wrap credit">
+  <div>SHILA is open source (Apache-2.0; data CC-BY-4.0) · built by <a href="https://www.linkedin.com/in/dr-arvind-karthik-5222b544" target="_blank" rel="noopener">Dr. Arvind Karthikeyan</a> · <a href="https://customai.in" target="_blank" rel="noopener">CustomAi.in</a></div>
+  <div>Found a wrong number or measured your own box? <a href="https://github.com/arvidkarthik2000-hue/shila/issues/new?template=benchmark.yml" target="_blank" rel="noopener">Submit a benchmark</a> · <a href="https://github.com/arvidkarthik2000-hue/shila/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribute data</a></div>
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>

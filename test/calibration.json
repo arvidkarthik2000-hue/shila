@@ -1,0 +1,14 @@
+[
+  { "model": "qwen38-27b", "quant": "UD-Q4_K_M", "hw": "rtx3090", "ctx": 4096, "measured": 40.3, "src": "hardware-corner.net Qwen3.8-27B tests (Q4_K_S, llama.cpp)" },
+  { "model": "qwen38-27b", "quant": "UD-Q4_K_M", "hw": "rtx4090", "ctx": 4096, "measured": 46.2, "src": "hardware-corner.net (Q4_K_S, llama.cpp)" },
+  { "model": "qwen38-27b", "quant": "UD-Q4_K_M", "hw": "rtx5090", "ctx": 4096, "measured": 74.8, "src": "hardware-corner.net (Q4_K_S, llama.cpp)" },
+  { "model": "qwen36-35b", "quant": "UD-Q4_K_M", "hw": "rtx3090", "ctx": 4096, "measured": 157.7, "src": "insiderllm.com (llama.cpp, all in VRAM)" },
+  { "model": "qwen36-35b", "quant": "UD-Q4_K_M", "hw": "rtx3060-tower", "ctx": 8192, "measured": 38.9, "src": "insiderllm.com (--n-cpu-moe 24)" },
+  { "model": "qwen36-35b", "quant": "UD-Q4_K_M", "hw": "strix-128", "ctx": 4096, "measured": 63, "src": "visorcraft/strix-halo-llm-perf (Vulkan)" },
+  { "model": "qwen36-35b", "quant": "UD-Q4_K_M", "hw": "evo-t2s", "ctx": 4096, "measured": 33, "src": "grigio.org Panther Lake (Vulkan)" },
+  { "model": "lfm25-24b", "quant": "Q4_K_M", "hw": "strix-128", "ctx": 4096, "measured": 114, "src": "Liquid AI model card (llama.cpp)" },
+  { "model": "lfm25-24b", "quant": "Q4_K_M", "hw": "m5max-36", "ramBw": 614, "ctx": 4096, "measured": 184, "src": "Liquid AI model card (llama.cpp, 40-core M5 Max)" },
+  { "model": "gemma4-26b", "quant": "QAT UD-Q4_K_XL", "hw": "rtx3090", "ctx": 4096, "measured": 119.4, "src": "hardware-corner.net RTX 3090 (Q4_K)" },
+  { "model": "flash-next", "quant": "UD-Q4_K_XL", "hw": "spark", "ctx": 8192, "measured": 25, "src": "NVIDIA developer forum (llama.cpp)" },
+  { "model": "nemotron35", "quant": "Q4_0", "hw": "rtx5090", "ctx": 4096, "measured": 123, "src": "kgptalkie (Ollama Q4_K_M)" }
+]

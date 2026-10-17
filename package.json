@@ -1,0 +1,20 @@
+{
+  "name": "shila",
+  "version": "0.1.0",
+  "description": "Local-AI fitment planner: which open-weight LLM fits which machine, how fast, and which inference engine to run it with. Web planner, CLI and MCP server.",
+  "keywords": ["llm", "local-ai", "inference", "llama.cpp", "mlx", "vllm", "gguf", "mcp", "model-context-protocol", "hardware", "quantization"],
+  "author": "Dr. Arvind Karthikeyan (https://github.com/arvidkarthik2000-hue)",
+  "license": "Apache-2.0",
+  "homepage": "https://arvidkarthik2000-hue.github.io/shila/",
+  "repository": { "type": "git", "url": "git+https://github.com/arvidkarthik2000-hue/shila.git" },
+  "bugs": { "url": "https://github.com/arvidkarthik2000-hue/shila/issues" },
+  "bin": { "shila": "bin/shila.js" },
+  "main": "src/index.js",
+  "files": ["bin", "src", "data", "LICENSE", "DATA_LICENSE", "README.md"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "node scripts/build-site.js",
+    "check-site": "node scripts/build-site.js --check"
+  }
+}

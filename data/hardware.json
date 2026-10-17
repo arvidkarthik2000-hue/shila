@@ -1,0 +1,682 @@
+[
+  {
+    "id": "pi5-16",
+    "group": "Single-board computers",
+    "name": "Raspberry Pi 5 · 16 GB",
+    "cpu": "BCM2712, 4× Cortex-A76",
+    "ram": 16,
+    "ramBw": 17,
+    "ramBwEff": 17,
+    "cpuClass": "sbc",
+    "gpu": null,
+    "unified": false,
+    "os": "linux",
+    "priceInr": [
+      29194,
+      34449
+    ],
+    "priceNote": "robu.in / Silverline, Oct 2026 (three price hikes in 2026)",
+    "pflopsCpu": 0.07,
+    "notes": "LPDDR4X-4267, 32-bit bus. Qwen3-30B-A3B at 2.7 bpw runs ~8 tok/s on it."
+  },
+  {
+    "id": "n150-16",
+    "group": "Entry mini PCs",
+    "name": "N150 mini PC · 16 GB DDR4 (GMKtec G3 Plus / Beelink S13 class)",
+    "cpu": "Intel N150, 4 cores",
+    "ram": 16,
+    "ramBw": 25.6,
+    "ramBwEff": 25.6,
+    "cpuClass": "small",
+    "gpu": null,
+    "unified": false,
+    "os": "windows",
+    "priceInr": [
+      28699,
+      34299
+    ],
+    "priceNote": "Amazon.in, 12 Oct 2026",
+    "pflopsCpu": 0.15,
+    "notes": "Single-channel SO-DIMM; DDR5-4800 variants reach 38 GB/s. 16 GB is the practical cap."
+  },
+  {
+    "id": "ser8-32",
+    "group": "Mid mini PCs",
+    "name": "Ryzen 7 8845HS mini PC · 32 GB DDR5-5600 (Beelink SER8 / GMKtec K8 Plus)",
+    "cpu": "Ryzen 7 8845HS, 8 cores",
+    "ram": 32,
+    "ramBw": 89.6,
+    "ramBwEff": 85,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "igpu",
+      "vendor": "amd",
+      "gen": "rdna3",
+      "name": "Radeon 780M (Vulkan)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": false,
+    "os": "windows",
+    "priceInr": [
+      105438,
+      124766
+    ],
+    "priceUsd": [
+      749,
+      920
+    ],
+    "priceNote": "Smartprix 13 Oct 2026 (inflated); US $749–920",
+    "pflopsGpu": 2.2,
+    "pflopsCpu": 0.6,
+    "notes": "Dual-channel SO-DIMM, upgradable to 64 GB. The iGPU mainly speeds up prompt reading."
+  },
+  {
+    "id": "ser8-64",
+    "group": "Mid mini PCs",
+    "name": "Ryzen 7 8845HS mini PC · 64 GB DDR5-5600 (same box, RAM upgraded)",
+    "cpu": "Ryzen 7 8845HS, 8 cores",
+    "ram": 64,
+    "ramBw": 89.6,
+    "ramBwEff": 85,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "igpu",
+      "vendor": "amd",
+      "gen": "rdna3",
+      "name": "Radeon 780M (Vulkan)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": false,
+    "os": "windows",
+    "priceInr": [
+      130000,
+      155000
+    ],
+    "priceNote": "estimate: SER8 + 2×32 GB DDR5 SO-DIMM at Oct 2026 RAM prices",
+    "estimate": true,
+    "pflopsGpu": 2.2,
+    "pflopsCpu": 0.6,
+    "notes": "Same bandwidth as 32 GB; buys room for Q8 models and long contexts, not speed."
+  },
+  {
+    "id": "aix1-64",
+    "group": "Mid mini PCs",
+    "name": "Ryzen AI 9 HX 370 mini PC · 64 GB LPDDR5X-7500 (Minisforum AI X1 Pro / Beelink SER9)",
+    "cpu": "Ryzen AI 9 HX 370, 12 cores",
+    "ram": 64,
+    "ramBw": 120,
+    "ramBwEff": 110,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "igpu",
+      "vendor": "amd",
+      "gen": "rdna3.5",
+      "name": "Radeon 890M (Vulkan/ROCm)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": false,
+    "os": "windows",
+    "priceUsd": [
+      1199,
+      1199
+    ],
+    "priceNote": "US $1,199 (Oct 2026); no India listing found",
+    "pflopsGpu": 3,
+    "pflopsCpu": 0.8,
+    "notes": "Soldered memory, 128-bit LPDDR5X. XDNA2 NPU usable through AMD Lemonade / FastFlowLM."
+  },
+  {
+    "id": "evo-t2s",
+    "group": "Mid mini PCs",
+    "name": "Core Ultra X7 358H (Panther Lake) mini PC · 64 GB LPDDR5X-8533 (GMKtec EVO-T2S)",
+    "cpu": "Core Ultra X7 358H, 16 cores",
+    "ram": 64,
+    "ramBw": 137,
+    "ramBwEff": 120,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "igpu",
+      "vendor": "intel",
+      "gen": "xe3",
+      "name": "Arc B390 iGPU (Vulkan/SYCL)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": false,
+    "os": "windows",
+    "priceUsd": [
+      2099,
+      2099
+    ],
+    "priceNote": "US $2,099 (Aug 2026)",
+    "pflopsGpu": 4,
+    "pflopsCpu": 0.9,
+    "notes": "Measured: Qwen3.6-35B-A3B Q4_K_M at 33 tok/s on Vulkan, 19 tok/s CPU-only (grigio.org)."
+  },
+  {
+    "id": "strix-64",
+    "group": "Unified-memory boxes",
+    "name": "Ryzen AI Max+ 395 (Strix Halo) · 64 GB (GMKtec EVO-X2 / Bosgame M5)",
+    "cpu": "Ryzen AI Max+ 395, 16 cores",
+    "ram": 64,
+    "ramBw": 256,
+    "ramBwEff": 215,
+    "cpuClass": "apu",
+    "gpu": {
+      "kind": "apu",
+      "vendor": "amd",
+      "gen": "rdna3.5",
+      "name": "Radeon 8060S (40 CU, ROCm/Vulkan)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": true,
+    "os": "windows",
+    "priceUsd": [
+      2200,
+      2200
+    ],
+    "priceNote": "US $2,200 (Oct 2026); India listing not found",
+    "pflopsGpu": 7,
+    "pflopsCpu": 1.2,
+    "notes": "256-bit LPDDR5X-8000, ~212–215 GB/s measured. Up to ~52 GB assignable to the GPU on this SKU."
+  },
+  {
+    "id": "strix-128",
+    "group": "Unified-memory boxes",
+    "name": "Ryzen AI Max+ 395 (Strix Halo) · 128 GB (GMKtec EVO-X2 / Beelink GTR9 Pro / Framework Desktop)",
+    "cpu": "Ryzen AI Max+ 395, 16 cores",
+    "ram": 128,
+    "ramBw": 256,
+    "ramBwEff": 215,
+    "cpuClass": "apu",
+    "gpu": {
+      "kind": "apu",
+      "vendor": "amd",
+      "gen": "rdna3.5",
+      "name": "Radeon 8060S (40 CU, ROCm/Vulkan)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": true,
+    "os": "linux",
+    "priceInr": [
+      486793,
+      558884
+    ],
+    "priceNote": "Amazon.in, 12 Oct 2026 (was ~₹2L at launch; DRAM surge)",
+    "pflopsGpu": 7,
+    "pflopsCpu": 1.2,
+    "notes": "Runs Qwen3.8-Flash-Next UD-IQ4_XS and LFM2.5-24B-A2B at 114 tok/s. ~110 GB usable by the GPU on Linux."
+  },
+  {
+    "id": "spark",
+    "group": "Unified-memory boxes",
+    "name": "NVIDIA DGX Spark · 128 GB (GB10; ASUS GX10 / Dell / HP / Lenovo clones)",
+    "cpu": "20-core Arm + Blackwell GPU",
+    "ram": 128,
+    "ramBw": 273,
+    "ramBwEff": 240,
+    "cpuClass": "apu",
+    "gpu": {
+      "kind": "apu",
+      "vendor": "nvidia",
+      "gen": "gb10",
+      "blackwell": true,
+      "name": "GB10 Blackwell (CUDA 13, NVFP4)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": true,
+    "os": "linux",
+    "priceInr": [
+      549990,
+      799000
+    ],
+    "priceNote": "Amazon.in / onlinestpl, Oct 2026; US list $4,699 (64 GB SKU $4,999 launched Oct 2026)",
+    "pflopsGpu": 20,
+    "pflopsCpu": 1,
+    "notes": "Same decode class as Strix Halo but 2–4× the prompt speed and the full CUDA stack (vLLM, SGLang, NVFP4)."
+  },
+  {
+    "id": "m4-16",
+    "group": "Apple",
+    "name": "Mac mini M4 · 16 GB",
+    "cpu": "Apple M4 (10-core GPU)",
+    "ram": 16,
+    "ramBw": 120,
+    "ramBwEff": 120,
+    "cpuClass": "apple",
+    "appleGen": 4,
+    "gpu": {
+      "kind": "apple",
+      "vendor": "apple",
+      "gen": "m4",
+      "name": "M4 GPU (Metal/MLX)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": true,
+    "os": "macos",
+    "priceInr": [
+      50359,
+      59900
+    ],
+    "priceNote": "Flipkart ₹50,359 / Amazon.in ₹59,900, 13 Oct 2026 (2024 model, still on sale)",
+    "pflopsGpu": 2.5,
+    "pflopsCpu": 0.5,
+    "notes": "Cheapest unified-memory bandwidth in India. macOS lets the GPU wire ~10.7 GB by default; raise iogpu.wired_limit_mb for ~12–13 GB."
+  },
+  {
+    "id": "m4-24",
+    "group": "Apple",
+    "name": "Mac mini M4 · 24 GB",
+    "cpu": "Apple M4 (10-core GPU)",
+    "ram": 24,
+    "ramBw": 120,
+    "ramBwEff": 120,
+    "cpuClass": "apple",
+    "appleGen": 4,
+    "gpu": {
+      "kind": "apple",
+      "vendor": "apple",
+      "gen": "m4",
+      "name": "M4 GPU (Metal/MLX)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": true,
+    "os": "macos",
+    "priceInr": [
+      142900,
+      142900
+    ],
+    "priceNote": "Reliance Digital, post-June-2026 price rise",
+    "pflopsGpu": 2.5,
+    "pflopsCpu": 0.5,
+    "notes": "Room for a 4-bit 24B-A2B plus context."
+  },
+  {
+    "id": "m6-16",
+    "group": "Apple",
+    "name": "Mac mini M6 · 16 GB (Sept 2026)",
+    "cpu": "Apple M6 (12-core GPU)",
+    "ram": 16,
+    "ramBw": 153,
+    "ramBwEff": 153,
+    "cpuClass": "apple",
+    "appleGen": 6,
+    "gpu": {
+      "kind": "apple",
+      "vendor": "apple",
+      "gen": "m6",
+      "name": "M6 GPU (Metal/MLX)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": true,
+    "os": "macos",
+    "priceInr": [
+      93990,
+      99900
+    ],
+    "priceNote": "Apple India ₹99,900; Smartprix ₹93,990 (Oct 2026)",
+    "pflopsGpu": 4,
+    "pflopsCpu": 0.7,
+    "notes": "Apple skipped a plain-M5 mini: the 2026 line is M6 and M5 Pro."
+  },
+  {
+    "id": "m6-24",
+    "group": "Apple",
+    "name": "Mac mini M6 · 24 GB (Sept 2026)",
+    "cpu": "Apple M6 (12-core GPU)",
+    "ram": 24,
+    "ramBw": 170,
+    "ramBwEff": 170,
+    "cpuClass": "apple",
+    "appleGen": 6,
+    "gpu": {
+      "kind": "apple",
+      "vendor": "apple",
+      "gen": "m6",
+      "name": "M6 GPU (Metal/MLX)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": true,
+    "os": "macos",
+    "priceInr": [
+      147900,
+      147900
+    ],
+    "priceNote": "Apple India (24 GB / 512 GB), Oct 2026",
+    "pflopsGpu": 4,
+    "pflopsCpu": 0.7,
+    "notes": "170 GB/s on the 24/32 GB configurations."
+  },
+  {
+    "id": "m4pro-24",
+    "group": "Apple",
+    "name": "Mac mini M4 Pro · 24 GB (48/64 GB BTO)",
+    "cpu": "Apple M4 Pro (16/20-core GPU)",
+    "ram": 24,
+    "ramBw": 273,
+    "ramBwEff": 273,
+    "cpuClass": "apple",
+    "appleGen": 4,
+    "gpu": {
+      "kind": "apple",
+      "vendor": "apple",
+      "gen": "m4pro",
+      "name": "M4 Pro GPU (Metal/MLX)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": true,
+    "os": "macos",
+    "priceInr": [
+      199900,
+      199900
+    ],
+    "priceNote": "₹1,99,900 (24 GB); 48/64 GB BTO price not found",
+    "pflopsGpu": 5,
+    "pflopsCpu": 0.7,
+    "notes": "Set RAM to 48 or 64 in the editor for the BTO versions."
+  },
+  {
+    "id": "m5pro-24",
+    "group": "Apple",
+    "name": "Mac mini M5 Pro · 24 GB (up to 64 GB BTO)",
+    "cpu": "Apple M5 Pro (16/20-core GPU)",
+    "ram": 24,
+    "ramBw": 307,
+    "ramBwEff": 307,
+    "cpuClass": "apple",
+    "appleGen": 5,
+    "gpu": {
+      "kind": "apple",
+      "vendor": "apple",
+      "gen": "m5pro",
+      "name": "M5 Pro GPU (Metal/MLX, neural accelerators)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": true,
+    "os": "macos",
+    "priceInr": [
+      209900,
+      233900
+    ],
+    "priceNote": "₹2,09,900 (24 GB); 18-core ₹2,33,900; 64 GB BTO extra",
+    "pflopsGpu": 9,
+    "pflopsCpu": 0.9,
+    "notes": "Splash reports Qwen3.8-27B at 74 tok/s on the 48 GB version."
+  },
+  {
+    "id": "m5max-36",
+    "group": "Apple",
+    "name": "Mac Studio M5 Max · 36 GB (64/128 GB BTO)",
+    "cpu": "Apple M5 Max (32/40-core GPU)",
+    "ram": 36,
+    "ramBw": 460,
+    "ramBwEff": 460,
+    "cpuClass": "apple",
+    "appleGen": 5,
+    "gpu": {
+      "kind": "apple",
+      "vendor": "apple",
+      "gen": "m5max",
+      "name": "M5 Max GPU (Metal/MLX)",
+      "vram": 0,
+      "vramBw": 0
+    },
+    "unified": true,
+    "os": "macos",
+    "priceInr": [
+      279900,
+      279900
+    ],
+    "priceNote": "₹2,79,900 (36 GB, 32-core GPU); 40-core / 128 GB BTO reaches 614 GB/s",
+    "pflopsGpu": 15,
+    "pflopsCpu": 1,
+    "notes": "The machine lithos-metal and Liquid benchmark on (set RAM 48–128 and bandwidth 614 for the 40-core)."
+  },
+  {
+    "id": "rtx3060-tower",
+    "group": "Desktop + GPU",
+    "name": "Budget tower · RTX 3060 12 GB + 32 GB DDR4-3200",
+    "cpu": "Any 6–8 core desktop CPU",
+    "ram": 32,
+    "ramBw": 51.2,
+    "ramBwEff": 45,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "dgpu",
+      "vendor": "nvidia",
+      "gen": "ampere",
+      "name": "RTX 3060 12 GB",
+      "vram": 12,
+      "vramBw": 360
+    },
+    "unified": false,
+    "os": "windows",
+    "priceInr": [
+      60000,
+      75000
+    ],
+    "priceNote": "estimate: GPU ₹24–35k (Oct 2026) + ₹25–30k used desktop",
+    "estimate": true,
+    "pflopsGpu": 9,
+    "pflopsCpu": 0.5,
+    "notes": "Cheapest way to a 30B-class MoE at 35–40 tok/s (experts in RAM via --n-cpu-moe)."
+  },
+  {
+    "id": "rtx5060ti",
+    "group": "Desktop + GPU",
+    "name": "Tower · RTX 5060 Ti 16 GB + 64 GB DDR5-5600",
+    "cpu": "Any 8-core desktop CPU",
+    "ram": 64,
+    "ramBw": 89.6,
+    "ramBwEff": 80,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "dgpu",
+      "vendor": "nvidia",
+      "gen": "blackwell",
+      "blackwell": true,
+      "name": "RTX 5060 Ti 16 GB",
+      "vram": 16,
+      "vramBw": 448
+    },
+    "unified": false,
+    "os": "windows",
+    "priceInr": [
+      120000,
+      150000
+    ],
+    "priceNote": "estimate: GPU ₹46.5–64.5k + new build",
+    "estimate": true,
+    "pflopsGpu": 18,
+    "pflopsCpu": 0.6,
+    "notes": "Blackwell: NVFP4 kernels in llama.cpp/vLLM/SGLang. Ran Flash-Next UD-IQ4_XS at 30.6 tok/s with 128 GB RAM."
+  },
+  {
+    "id": "rtx5070ti",
+    "group": "Desktop + GPU",
+    "name": "Tower · RTX 5070 Ti 16 GB + 64 GB DDR5-5600",
+    "cpu": "Any 8-core desktop CPU",
+    "ram": 64,
+    "ramBw": 89.6,
+    "ramBwEff": 80,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "dgpu",
+      "vendor": "nvidia",
+      "gen": "blackwell",
+      "blackwell": true,
+      "name": "RTX 5070 Ti 16 GB",
+      "vram": 16,
+      "vramBw": 896
+    },
+    "unified": false,
+    "os": "windows",
+    "priceInr": [
+      150000,
+      190000
+    ],
+    "priceNote": "estimate: GPU ₹83–103k + new build",
+    "estimate": true,
+    "pflopsGpu": 35,
+    "pflopsCpu": 0.6,
+    "notes": "896 GB/s makes 12–16 GB dense models fly; MoEs still spill experts to RAM."
+  },
+  {
+    "id": "rx9070xt",
+    "group": "Desktop + GPU",
+    "name": "Tower · RX 9070 XT 16 GB + 64 GB DDR5-5600",
+    "cpu": "Any 8-core desktop CPU",
+    "ram": 64,
+    "ramBw": 89.6,
+    "ramBwEff": 80,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "dgpu",
+      "vendor": "amd",
+      "gen": "rdna4",
+      "name": "RX 9070 XT 16 GB (ROCm/Vulkan/HIP)",
+      "vram": 16,
+      "vramBw": 640
+    },
+    "unified": false,
+    "os": "windows",
+    "priceInr": [
+      140000,
+      170000
+    ],
+    "priceNote": "estimate: GPU ₹68k (8 Oct 2026) + new build",
+    "estimate": true,
+    "pflopsGpu": 18,
+    "pflopsCpu": 0.6,
+    "notes": "Strata’s AMD reference card (Flash-Next at 44–60 tok/s)."
+  },
+  {
+    "id": "arcb580",
+    "group": "Desktop + GPU",
+    "name": "Tower · Intel Arc B580 12 GB + 32 GB DDR5",
+    "cpu": "Any 6–8 core desktop CPU",
+    "ram": 32,
+    "ramBw": 89.6,
+    "ramBwEff": 80,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "dgpu",
+      "vendor": "intel",
+      "gen": "xe2",
+      "name": "Arc B580 12 GB (Vulkan/SYCL)",
+      "vram": 12,
+      "vramBw": 456
+    },
+    "unified": false,
+    "os": "windows",
+    "priceInr": [
+      95000,
+      110000
+    ],
+    "priceNote": "estimate: GPU ₹49k (in stock; 12-mo median ₹29k) + new build",
+    "estimate": true,
+    "pflopsGpu": 12,
+    "pflopsCpu": 0.6,
+    "notes": "Works with llama.cpp Vulkan/SYCL; most specialist engines are CUDA-only."
+  },
+  {
+    "id": "rtx3090",
+    "group": "Desktop + GPU",
+    "name": "Tower · used RTX 3090 24 GB + 64 GB DDR5-5600",
+    "cpu": "Any 8-core desktop CPU",
+    "ram": 64,
+    "ramBw": 89.6,
+    "ramBwEff": 80,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "dgpu",
+      "vendor": "nvidia",
+      "gen": "ampere",
+      "name": "RTX 3090 24 GB (used)",
+      "vram": 24,
+      "vramBw": 936
+    },
+    "unified": false,
+    "os": "linux",
+    "priceInr": [
+      150000,
+      180000
+    ],
+    "priceNote": "estimate: used 3090 ~₹1.2L (global 90-day median €1,224) + build",
+    "estimate": true,
+    "pflopsGpu": 25,
+    "pflopsCpu": 0.6,
+    "notes": "24 GB of 936 GB/s: the classic sweet spot for 27B dense at Q4 (40 tok/s, 66 with MTP)."
+  },
+  {
+    "id": "rtx4090",
+    "group": "Desktop + GPU",
+    "name": "Tower · RTX 4090 24 GB + 64 GB DDR5",
+    "cpu": "Any 8–16 core desktop CPU",
+    "ram": 64,
+    "ramBw": 89.6,
+    "ramBwEff": 80,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "dgpu",
+      "vendor": "nvidia",
+      "gen": "ada",
+      "name": "RTX 4090 24 GB",
+      "vram": 24,
+      "vramBw": 1008
+    },
+    "unified": false,
+    "os": "windows",
+    "priceInr": [
+      220000,
+      280000
+    ],
+    "priceNote": "estimate: RTX 4090 ₹1.5L (Oct 2026, often out of stock) + build",
+    "pflopsGpu": 55,
+    "pflopsCpu": 0.9,
+    "notes": "24 GB at 1,008 GB/s. Qwen3.8-27B UD-Q4_K_XL with MTP: 109 tok/s measured on a 4090.",
+    "estimate": true
+  },
+  {
+    "id": "rtx5090",
+    "group": "Desktop + GPU",
+    "name": "Tower · RTX 5090 32 GB + 96 GB DDR5 + Gen5 NVMe",
+    "cpu": "Core i9 / Ryzen 9 desktop",
+    "ram": 96,
+    "ramBw": 89.6,
+    "ramBwEff": 80,
+    "cpuClass": "desktop",
+    "gpu": {
+      "kind": "dgpu",
+      "vendor": "nvidia",
+      "gen": "blackwell",
+      "blackwell": true,
+      "name": "RTX 5090 32 GB",
+      "vram": 32,
+      "vramBw": 1792
+    },
+    "unified": false,
+    "os": "windows",
+    "priceInr": [
+      350000,
+      800000
+    ],
+    "priceNote": "GPU alone ₹2.69–7.4L in Oct 2026 (volatile) + build",
+    "estimate": true,
+    "pflopsGpu": 90,
+    "pflopsCpu": 0.9,
+    "notes": "The Infernix / NInfer machine: Qwen3.8-27B NVFP4 at 200+ tok/s, Flash-Next at 140."
+  }
+]

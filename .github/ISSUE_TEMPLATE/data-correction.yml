@@ -1,0 +1,17 @@
+name: Correct or add data
+description: A wrong size, price, engine fact, or a new model / machine / engine to add.
+title: "[data] "
+labels: [data]
+body:
+  - type: dropdown
+    id: kind
+    attributes: { label: What kind, options: [New model, New machine, New engine, Wrong number, Price update, Other] }
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes: { label: What should change }
+    validations: { required: true }
+  - type: input
+    id: source
+    attributes: { label: Source link, description: Every number in SHILA needs a public source }
+    validations: { required: true }

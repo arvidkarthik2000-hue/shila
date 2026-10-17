@@ -1,0 +1,34 @@
+name: Submit a benchmark
+description: You ran a model on a machine and measured its speed. This is the most useful thing you can send.
+title: "[benchmark] <model> on <machine>"
+labels: [benchmark]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Measured numbers make SHILA's estimates honest. `llama-bench -m model.gguf -p 2048 -n 256` output is ideal; a server log or a screenshot also works.
+  - type: input
+    id: model
+    attributes: { label: Model and file, description: "Hugging Face repo and quant, e.g. LiquidAI/LFM2.5-24B-A2B-GGUF Q4_K_M", placeholder: "LiquidAI/LFM2.5-24B-A2B-GGUF Q4_K_M" }
+    validations: { required: true }
+  - type: input
+    id: machine
+    attributes: { label: Machine, description: "CPU / chip, RAM size and type, GPU and VRAM, OS", placeholder: "Beelink SER8, Ryzen 7 8845HS, 32 GB DDR5-5600, Radeon 780M, Windows 11" }
+    validations: { required: true }
+  - type: input
+    id: engine
+    attributes: { label: Engine and version, placeholder: "llama.cpp b11435 Vulkan" }
+    validations: { required: true }
+  - type: input
+    id: settings
+    attributes: { label: Settings, description: "context length, flags (-ngl, --n-cpu-moe, KV type, drafting)", placeholder: "-c 32768 -fa on -ngl 99" }
+  - type: input
+    id: decode
+    attributes: { label: Decode speed (tokens/s), placeholder: "34.2" }
+    validations: { required: true }
+  - type: input
+    id: prefill
+    attributes: { label: Prompt speed (tokens/s), placeholder: "460" }
+  - type: textarea
+    id: log
+    attributes: { label: Log or link, description: Paste the benchmark output or link to it, render: text }

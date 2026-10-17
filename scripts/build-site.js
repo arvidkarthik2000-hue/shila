@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..');
-const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
+const read = (p) => fs.readFileSync(path.join(root, p), 'utf8').replace(/\r\n/g, '\n');
 
 const data = {
   models: JSON.parse(read('data/models.json')),
@@ -46,7 +46,7 @@ const args = process.argv.slice(2);
 if (args[0] === '--fragment') { fs.writeFileSync(args[1], body); console.log('wrote ' + args[1]); process.exit(0); }
 const out = path.join(root, 'docs', 'index.html');
 if (args[0] === '--check') {
-  const cur = fs.existsSync(out) ? fs.readFileSync(out, 'utf8') : '';
+  const cur = fs.existsSync(out) ? fs.readFileSync(out, 'utf8').replace(/\r\n/g, '\n') : '';
   if (cur !== page) { console.error('docs/index.html is out of date: run npm run build'); process.exit(1); }
   console.log('docs/index.html is up to date'); process.exit(0);
 }

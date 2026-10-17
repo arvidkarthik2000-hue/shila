@@ -13,7 +13,7 @@
   "files": ["bin", "src", "data", "LICENSE", "DATA_LICENSE", "README.md"],
   "engines": { "node": ">=18" },
   "scripts": {
-    "test": "node --test test/*.test.js",
+    "test": "node scripts/run-tests.js",
     "build": "node scripts/build-site.js",
     "check-site": "node scripts/build-site.js --check"
   }

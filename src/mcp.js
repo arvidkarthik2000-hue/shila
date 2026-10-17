@@ -68,6 +68,7 @@ const TOOLS = [
         min_tokens_per_sec: { type: 'number', description: 'Minimum estimated decode speed in short chats (default 15)' },
         max_budget_inr: { type: 'number', description: 'Optional price ceiling in Indian rupees' },
         ...COMMON,
+        min_quality: { type: 'string', enum: ['any', 'usable', 'good', 'excellent'], description: 'Lowest quantization quality to accept (default usable = 3-bit or better, so 2-bit files do not count as a fit)' },
       },
       required: ['model'],
     },

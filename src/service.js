@@ -95,7 +95,7 @@ async function whatCanRun({ hardware, context = 32768, users = 1, min_quality = 
   return { hardware: compactBox(hw), settings: { context: o.ctx, users: o.users, min_quality }, models: rows, disclaimer: `Estimates ±30%. Data as of ${SHILA.DATA_DATE}. Any other Hugging Face model: call check_compatibility with its repo id.` };
 }
 
-async function cheapestHardware({ model, min_tokens_per_sec = 15, max_budget_inr = null, context = 32768, users = 1, min_quality = 'any' }) {
+async function cheapestHardware({ model, min_tokens_per_sec = 15, max_budget_inr = null, context = 32768, users = 1, min_quality = 'usable' }) {
   const m = await resolveModel(model);
   const o = { ctx: Number(context) || 32768, users: Number(users) || 1, floor: min_quality };
   const rows = SHILA.HARDWARE.map(hw => ({ hw, P: SHILA.plan(m, hw, o), price: SHILA.priceSort(hw) }))

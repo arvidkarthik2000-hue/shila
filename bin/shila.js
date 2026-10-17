@@ -95,7 +95,7 @@ async function main() {
   }
 
   if (cmd === 'cheapest') {
-    const r = await svc.cheapestHardware(Object.assign({ model: a._.slice(1).join(' '), min_tokens_per_sec: Number(a['min-tps']) || 15, max_budget_inr: a.budget ? Number(a.budget) : null }, common));
+    const r = await svc.cheapestHardware(Object.assign({ model: a._.slice(1).join(' '), min_tokens_per_sec: Number(a['min-tps']) || 15, max_budget_inr: a.budget ? Number(a.budget) : null }, common, { min_quality: a['min-quality'] || 'usable' }));
     return out(r, `${r.model}, at least ${r.requirement.min_tokens_per_sec} tok/s\n\n` + (r.options.length ? table(r.options, [{ h: 'box', w: 50, f: x => x.hardware }, { h: 'price', w: 26, f: x => x.price }, { h: 'quant', w: 14, f: x => x.quant }, { h: 'tok/s', w: 7, r: 1, f: x => x.est_decode_tps_short }]) + '\n\n' : '') + r.note);
   }
 

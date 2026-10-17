@@ -1,5 +1,7 @@
 # SHILA
 
+[![ci](https://github.com/arvidkarthik2000-hue/shila/actions/workflows/ci.yml/badge.svg)](https://github.com/arvidkarthik2000-hue/shila/actions/workflows/ci.yml) [![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-blue)](LICENSE) [![data: CC BY 4.0](https://img.shields.io/badge/data-CC%20BY%204.0-lightgrey)](DATA_LICENSE) [![MCP server](https://img.shields.io/badge/MCP-server-orange)](#use-it-from-claude-cursor-or-any-mcp-client)
+
 **Which open-weight LLM fits which machine, how fast it will run, and which inference engine to use — from a Raspberry Pi to a DGX Spark.**
 
 [**Open the planner →**](https://arvidkarthik2000-hue.github.io/shila/) · [MCP server](#use-it-from-claude-cursor-or-any-mcp-client) · [CLI](#command-line) · [How the estimates work](#how-the-estimates-work) · [Contribute a benchmark](https://github.com/arvidkarthik2000-hue/shila/issues/new?template=benchmark.yml)

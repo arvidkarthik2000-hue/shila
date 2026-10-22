@@ -107,7 +107,7 @@ Not modelled: GPU expert caches, thermal throttling in small boxes, PCIe generat
 
 ## Contributing
 
-The most useful contribution is a **measured result**: [submit a benchmark](https://github.com/arvidkarthik2000-hue/shila/issues/new?template=benchmark.yml). Adding a model, a machine or an engine is a JSON edit in `data/`; see [CONTRIBUTING.md](CONTRIBUTING.md). A [Reddit radar](CONTRIBUTING.md#3-reddit-radar) watches r/LocalLLaMA every 6 hours and files new models and measurements as an issue for curation.
+The most useful contribution is a **measured result**: [submit a benchmark](https://github.com/arvidkarthik2000-hue/shila/issues/new?template=benchmark.yml). Adding a model, a machine or an engine is a JSON edit in `data/`; see [CONTRIBUTING.md](CONTRIBUTING.md). A [Reddit radar](CONTRIBUTING.md#3-reddit-radar) watches r/LocalLLaMA once a day and files new models and measurements as an issue for curation.
 
 ```
 data/         models.json · hardware.json · meta.json        (CC BY 4.0)

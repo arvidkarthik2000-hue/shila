@@ -193,7 +193,7 @@ a.chip { text-decoration: none; }
             <label class="lbl">GPU VRAM (GB)<input type="number" id="eVram" min="0" max="192" step="1"></label>
             <label class="lbl">VRAM bandwidth (GB/s)<input type="number" id="eVramBw" min="0" max="5000" step="1"></label>
             <label class="lbl">OS<select id="eOs"><option value="linux">Linux</option><option value="windows">Windows</option><option value="macos">macOS</option></select></label>
-            <label class="lbl">Price (₹, optional)<input type="number" id="ePrice" min="0" step="1000"></label>
+            <label class="lbl">Price ($, optional)<input type="number" id="ePrice" min="0" step="1000"></label>
           </div>
           <div class="note" style="margin-top:6px">Discrete-GPU boxes: VRAM fields apply. Unified boxes (Mac, Strix Halo, Spark): RAM is the GPU memory.</div>
         </details>
@@ -259,7 +259,7 @@ a.chip { text-decoration: none; }
 
       <div id="tab-cheapest" role="tabpanel" hidden style="display:grid;gap:12px">
         <h2 id="cheapH"></h2>
-        <div class="note">Every box in the catalogue, cheapest first, at the best quant that fits it. Prices are Indian listings from October 2026 (DRAM shortage pricing) unless marked US or estimated.</div>
+        <div class="note">Every box in the catalogue, cheapest first, at the best quant that fits it. Prices are in USD: Indian listings from October 2026 (DRAM shortage pricing) converted at ₹92/$ and marked ~, or US listings, unless marked estimated.</div>
         <div class="tablewrap"><table id="cheapTable"></table></div>
       </div>
 
@@ -285,7 +285,7 @@ a.chip { text-decoration: none; }
           <ul class="tight">
             <li><b>check_compatibility</b>: model + machine → verdict, best quant file, estimated tok/s, memory, ranked engines with commands, published measurements</li>
             <li><b>what_can_i_run</b>: machine → every catalogue model ranked by speed</li>
-            <li><b>cheapest_hardware</b>: model + minimum tok/s (+ budget in ₹) → boxes, cheapest first</li>
+            <li><b>cheapest_hardware</b>: model + minimum tok/s (+ budget in $) → boxes, cheapest first</li>
             <li><b>probe_this_machine</b>: detects RAM, bandwidth, CPU, GPU and VRAM of the computer the server runs on (read-only)</li>
             <li><b>list_models</b>, <b>list_hardware</b>, <b>list_engines</b></li>
           </ul>
@@ -293,7 +293,7 @@ a.chip { text-decoration: none; }
         <section class="panel"><h3>Command line</h3><div class="cmd"><button class="btn small" type="button" data-copy>Copy</button><pre>npx -y github:arvidkarthik2000-hue/shila fit LiquidAI/LFM2.5-24B-A2B          # detects this machine
 npx -y github:arvidkarthik2000-hue/shila fit qwen3.8-27b --on "RTX 4090, 64GB DDR5"
 npx -y github:arvidkarthik2000-hue/shila can-run --on "Mac mini M4 16GB"
-npx -y github:arvidkarthik2000-hue/shila cheapest lfm2.5-24b --min-tps 20 --budget 150000</pre></div></section>
+npx -y github:arvidkarthik2000-hue/shila cheapest lfm2.5-24b --min-tps 20 --budget 1600</pre></div></section>
       </div>
 
       <details class="panel">

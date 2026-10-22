@@ -13,7 +13,7 @@ New inference engines appear every week, most of them built for one model on one
 - **Does it fit?** Every real quantized file of the model (sizes read from Hugging Face), placed in VRAM, unified memory, a GPU + RAM split (MoE experts in RAM), CPU/iGPU, or streamed from SSD.
 - **How fast?** Estimated decode and prompt speed for short chats and for the full context you reserve, next to published measurements with their sources.
 - **With what?** 21 engines ranked for that box and model, general and model-specific, with install-and-run commands.
-- **What should I buy?** The cheapest catalogued box that runs a model at the speed you need, with October 2026 Indian prices.
+- **What should I buy?** The cheapest catalogued box that runs a model at the speed you need, with October 2026 prices in USD.
 
 Catalogue: 14 models (Flint 40B-A2.5B, LFM2.5-24B-A2B, Qwen3.8-27B, Qwen3.8-Flash-Next, Qwen3.6-35B-A3B, Gemma 4, Nemotron 3.5 Lightning and small siblings), 24 machines, 21 engines. **Any other Hugging Face model works** in the MCP server and CLI: SHILA reads its `config.json` and GGUF listings live.
 
@@ -35,13 +35,13 @@ claude mcp add shila -- npx -y github:arvidkarthik2000-hue/shila mcp
 }
 ```
 
-Then ask: *"Can I run LFM2.5-24B-A2B on this laptop?"*, *"What's the cheapest box for Qwen3.8-27B at 30 tok/s under ₹2 lakh?"*, *"Will mistralai/Mistral-Small-3.2-24B-Instruct-2506 fit a Mac mini M4 Pro 48GB?"*
+Then ask: *"Can I run LFM2.5-24B-A2B on this laptop?"*, *"What's the cheapest box for Qwen3.8-27B at 30 tok/s under $2,000?"*, *"Will mistralai/Mistral-Small-3.2-24B-Instruct-2506 fit a Mac mini M4 Pro 48GB?"*
 
 | Tool | Input | Returns |
 |---|---|---|
 | `check_compatibility` | model (catalogue id or any HF repo) + machine | verdict, best quant file, estimated tok/s, memory, ranked engines with commands, the full quant ladder, published measurements |
 | `what_can_i_run` | machine | every catalogue model at its best quant, fastest first |
-| `cheapest_hardware` | model, minimum tok/s, optional ₹ budget | catalogued boxes that meet it, cheapest first |
+| `cheapest_hardware` | model, minimum tok/s, optional $ budget | catalogued boxes that meet it, cheapest first |
 | `probe_this_machine` | — | RAM, memory bandwidth, CPU, GPU, VRAM of the computer the server runs on |
 | `list_models` · `list_hardware` · `list_engines` | — | the catalogue |
 
@@ -53,7 +53,7 @@ A machine can be `"this_machine"` (auto-detect, read-only: `nvidia-smi`, `rocm-s
 npx -y github:arvidkarthik2000-hue/shila fit LiquidAI/LFM2.5-24B-A2B            # detects this machine
 npx -y github:arvidkarthik2000-hue/shila fit qwen3.8-27b --on "RTX 4090, 64GB DDR5" --ctx 65536
 npx -y github:arvidkarthik2000-hue/shila can-run --on "Mac mini M4 16GB"
-npx -y github:arvidkarthik2000-hue/shila cheapest lfm2.5-24b --min-tps 20 --budget 150000
+npx -y github:arvidkarthik2000-hue/shila cheapest lfm2.5-24b --min-tps 20 --budget 1600
 npx -y github:arvidkarthik2000-hue/shila probe
 ```
 
@@ -119,6 +119,6 @@ test/         calibration and MCP tests (node --test)
 
 ## Licence
 
-Code: [Apache-2.0](LICENSE). Data: [CC BY 4.0](DATA_LICENSE). Model and engine names belong to their owners. Prices are Indian retail listings captured in October 2026, during the DRAM shortage; they move weekly.
+Code: [Apache-2.0](LICENSE). Data: [CC BY 4.0](DATA_LICENSE). Model and engine names belong to their owners. Prices are in USD: Indian retail listings captured in October 2026 (during the DRAM shortage) converted at ₹92/$ and marked ~, plus US listings where no Indian one exists. They move weekly.
 
 Built by **Dr. Arvind Karthikeyan** · [LinkedIn](https://www.linkedin.com/in/dr-arvind-karthik-5222b544) · [CustomAi.in](https://customai.in)

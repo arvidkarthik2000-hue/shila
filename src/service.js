@@ -95,15 +95,15 @@ async function whatCanRun({ hardware, context = 32768, users = 1, min_quality = 
   return { hardware: compactBox(hw), settings: { context: o.ctx, users: o.users, min_quality }, models: rows, disclaimer: `Estimates ±30%. Data as of ${SHILA.DATA_DATE}. Any other Hugging Face model: call check_compatibility with its repo id.` };
 }
 
-async function cheapestHardware({ model, min_tokens_per_sec = 15, max_budget_inr = null, context = 32768, users = 1, min_quality = 'usable' }) {
+async function cheapestHardware({ model, min_tokens_per_sec = 15, max_budget_usd = null, context = 32768, users = 1, min_quality = 'usable' }) {
   const m = await resolveModel(model);
   const o = { ctx: Number(context) || 32768, users: Number(users) || 1, floor: min_quality };
   const rows = SHILA.HARDWARE.map(hw => ({ hw, P: SHILA.plan(m, hw, o), price: SHILA.priceSort(hw) }))
     .filter(r => r.P.best && r.P.best.est.status !== 'ssd' && r.P.best.est.decodeShort >= Number(min_tokens_per_sec))
-    .filter(r => !max_budget_inr || (r.price && r.price <= Number(max_budget_inr)))
+    .filter(r => !max_budget_usd || (r.price && r.price <= Number(max_budget_usd)))
     .sort((a, b) => (a.price || 1e12) - (b.price || 1e12))
     .map(r => ({ hardware: r.hw.name, id: r.hw.id, price: SHILA.priceText(r.hw), price_note: r.hw.priceNote, quant: r.P.best.q.tag, verdict: STATUS[r.P.best.est.status], est_decode_tps_short: r1(r.P.best.est.decodeShort), est_decode_tps_full_context: r1(r.P.best.est.decode), best_engine: (SHILA.rankEngines(r.hw, m, r.P.best, o)[0] || { engine: { name: null } }).engine.name }));
-  return { model: m.name, requirement: { min_tokens_per_sec: Number(min_tokens_per_sec), max_budget_inr, context: o.ctx, users: o.users }, options: rows, note: rows.length ? 'Cheapest first. Prices are Indian listings from October 2026 (DRAM-shortage pricing) unless marked US or estimated.' : 'No catalogued box meets this. Lower min_tokens_per_sec, the context, or the quality floor.' };
+  return { model: m.name, requirement: { min_tokens_per_sec: Number(min_tokens_per_sec), max_budget_usd, context: o.ctx, users: o.users }, options: rows, note: rows.length ? 'Cheapest first. Prices are in USD: Indian listings from October 2026 (DRAM-shortage pricing) converted at ₹92/$ and marked ~, or US listings, unless marked estimated.' : 'No catalogued box meets this. Lower min_tokens_per_sec, the context, or the quality floor.' };
 }
 
 function listModels() {

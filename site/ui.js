@@ -30,7 +30,7 @@
     if (ov.ramBw) { hw.ramBw = ov.ramBw; hw.ramBwEff = ov.ramBw; }
     if (hw.gpu && hw.gpu.kind === 'dgpu') { if (ov.vram != null) hw.gpu.vram = ov.vram; if (ov.vramBw) hw.gpu.vramBw = ov.vramBw; }
     if (ov.os) hw.os = ov.os;
-    if (ov.price) { hw.priceInr = [ov.price, ov.price]; hw.priceNote = 'your price'; hw.estimate = false; }
+    if (ov.price) { hw.priceUsd = [ov.price, ov.price]; hw.priceInr = null; hw.priceNote = 'your price'; hw.estimate = false; }
     hw.edited = Object.keys(ov).length > 0;
     return hw;
   }
@@ -66,7 +66,7 @@
     $('boxPrice').textContent = hw.priceInr || hw.priceUsd ? S.priceText(hw) : (hw.priceNote || '');
     const gpuTxt = hw.gpu ? (hw.gpu.kind === 'dgpu' ? `${hw.gpu.name} · ${hw.gpu.vram} GB · ${hw.gpu.vramBw} GB/s` : hw.gpu.name) : 'no GPU';
     $('hwChips').innerHTML = [`${hw.ram} GB ${hw.unified ? 'unified' : 'RAM'}`, `${hw.ramBwEff} GB/s${hw.ramBwEff !== hw.ramBw ? ' (measured; ' + hw.ramBw + ' spec)' : ''}`, gpuTxt, hw.os, hw.edited ? 'edited' : ''].filter(Boolean).map(t => `<span class="chip">${esc(t)}</span>`).join('');
-    $('hwNote').textContent = (hw.notes || '') + (hw.priceNote && hw.priceInr ? ` Price: ${hw.priceNote}.` : '') + (hw.assumptions && hw.assumptions.length ? ' Assumed: ' + hw.assumptions.join('; ') + '.' : '');
+    $('hwNote').textContent = (hw.notes || '') + (hw.priceNote && (hw.priceInr || hw.priceUsd) ? ` Price: ${hw.priceNote}.` : '') + (hw.assumptions && hw.assumptions.length ? ' Assumed: ' + hw.assumptions.join('; ') + '.' : '');
     $('mChips').innerHTML = [m.kind === 'moe' ? `${m.total}B total · ${m.active}B active` : `${m.total}B dense`, `${m.layers} layers`, `KV ${(m.kvBytes / 1024).toFixed(0)} KB/token`, `${(m.ctxMax / 1024).toFixed(0)}K context`, m.vision ? 'vision' : 'text only', m.license, m.released].map(t => `<span class="chip">${esc(t)}</span>`).join('');
     $('mWhy').innerHTML = `${esc(m.why)} <span class="muted">${esc(m.arch)}</span> <a href="https://huggingface.co/${esc(m.hf)}" target="_blank" rel="noopener">model card ↗</a>`;
   }
@@ -177,8 +177,8 @@
       const price = S.priceText(hw);
       if (!b) return `<tr class="dim"><td>${esc(hw.name)}</td><td class="num">${esc(price)}</td><td colspan="5">no quant fits</td><td><span class="status no">Does not fit</span></td></tr>`;
       const e = b.est; let cls = '';
-      if (!flagged && e.status === 'ok' && e.decodeShort >= 20 && hw.priceInr) { cls = 'pick'; flagged = true; }
-      return `<tr class="${cls}"><td><b>${esc(hw.name)}</b>${cls ? '<div class="note">cheapest comfortable pick (≥20 tok/s, headroom, Indian price)</div>' : ''}</td><td class="num">${esc(price)}</td><td>${esc(b.q.tag)} <span class="tier t${b.tier.rank}">${esc(b.tier.label)}</span></td><td>${esc(S.placementLabel(e.placement))}</td><td class="num">${tok(e.decodeShort)}</td><td class="num">${tok(e.decode)}</td><td class="num">${tok(e.prefill)}</td><td><span class="status ${e.status}">${STATUS_TXT[e.status]}</span></td></tr>`;
+      if (!flagged && e.status === 'ok' && e.decodeShort >= 20 && S.priceSort(hw)) { cls = 'pick'; flagged = true; }
+      return `<tr class="${cls}"><td><b>${esc(hw.name)}</b>${cls ? '<div class="note">cheapest comfortable pick (≥20 tok/s, headroom, priced)</div>' : ''}</td><td class="num">${esc(price)}</td><td>${esc(b.q.tag)} <span class="tier t${b.tier.rank}">${esc(b.tier.label)}</span></td><td>${esc(S.placementLabel(e.placement))}</td><td class="num">${tok(e.decodeShort)}</td><td class="num">${tok(e.decode)}</td><td class="num">${tok(e.prefill)}</td><td><span class="status ${e.status}">${STATUS_TXT[e.status]}</span></td></tr>`;
     }).join('') + '</tbody>';
   }
 

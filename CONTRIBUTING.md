@@ -17,7 +17,7 @@ Include the machine (CPU/chip, RAM size and type, GPU and VRAM, OS), the engine 
 All data lives in `data/`:
 
 - **models.json**: one entry per model. Required: `id`, `name`, `hf`, `total`, `active` (billions), `kind` (`dense`/`moe`), `layers`, `attnLayers` (layers with a growing KV cache), `kvBytes` (bytes per token, K+V, fp16), `ctxMax`, `license`, `released`, and `quants` (`tag`, `gb` from the Hugging Face file listing, `fmt` = `gguf`/`mlx`/`nvfp4`/`fp8`/`bf16`, `repo`). MoE models also need `expertWeightFrac` and `expertActiveFrac`. Measured results go in `anchors` with a `src` URL.
-- **hardware.json**: one entry per machine. Required: `id`, `group`, `name`, `ram`, `ramBw` (spec) and `ramBwEff` (measured if known), `cpuClass`, `gpu` (or `null`), `unified`, `os`, `pflopsGpu`/`pflopsCpu`, and a price (`priceInr` range with `priceNote` naming the listing and date, or `priceUsd`).
+- **hardware.json**: one entry per machine. Required: `id`, `group`, `name`, `ram`, `ramBw` (spec) and `ramBwEff` (measured if known), `cpuClass`, `gpu` (or `null`), `unified`, `os`, `pflopsGpu`/`pflopsCpu`, and a price (`priceUsd` range, or `priceInr` which is shown converted to USD at ₹92/$; `priceNote` names the listing and date).
 - Engines are code, in `src/core.js` (`ENGINES`): each has a `check(hw, model, pick, opts)` that returns `null` when it does not apply, or a score, reasons, caveats and the commands. Commands must come from the engine's own README.
 
 Then:

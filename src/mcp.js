@@ -60,13 +60,13 @@ const TOOLS = [
   {
     name: 'cheapest_hardware',
     title: 'Cheapest box for a model',
-    description: 'Ranks the catalogued machines (Raspberry Pi to DGX Spark, with October 2026 Indian prices) that run a model at or above a speed, cheapest first.',
+    description: 'Ranks the catalogued machines (Raspberry Pi to DGX Spark, with October 2026 prices in USD) that run a model at or above a speed, cheapest first.',
     inputSchema: {
       type: 'object',
       properties: {
         model: { type: 'string', description: 'Catalogue id/name or Hugging Face repo id' },
         min_tokens_per_sec: { type: 'number', description: 'Minimum estimated decode speed in short chats (default 15)' },
-        max_budget_inr: { type: 'number', description: 'Optional price ceiling in Indian rupees' },
+        max_budget_usd: { type: 'number', description: 'Optional price ceiling in US dollars' },
         ...COMMON,
         min_quality: { type: 'string', enum: ['any', 'usable', 'good', 'excellent'], description: 'Lowest quantization quality to accept (default usable = 3-bit or better, so 2-bit files do not count as a fit)' },
       },

@@ -9,7 +9,7 @@ const HELP = `shila ${pkg.version} — which local LLM fits which machine, how f
 Usage
   shila fit <model> [--on <hardware>] [--ctx 32768] [--users 1] [--min-quality any|usable|good|excellent] [--kv8] [--json]
   shila can-run [--on <hardware>] [--ctx 32768] [--json]
-  shila cheapest <model> [--min-tps 15] [--budget <INR>] [--json]
+  shila cheapest <model> [--min-tps 15] [--budget <USD>] [--json]
   shila probe [--json]
   shila models | shila boxes | shila engines [--json]
   shila mcp                      start the MCP server on stdio
@@ -95,7 +95,7 @@ async function main() {
   }
 
   if (cmd === 'cheapest') {
-    const r = await svc.cheapestHardware(Object.assign({ model: a._.slice(1).join(' '), min_tokens_per_sec: Number(a['min-tps']) || 15, max_budget_inr: a.budget ? Number(a.budget) : null }, common, { min_quality: a['min-quality'] || 'usable' }));
+    const r = await svc.cheapestHardware(Object.assign({ model: a._.slice(1).join(' '), min_tokens_per_sec: Number(a['min-tps']) || 15, max_budget_usd: a.budget ? Number(a.budget) : null }, common, { min_quality: a['min-quality'] || 'usable' }));
     return out(r, `${r.model}, at least ${r.requirement.min_tokens_per_sec} tok/s\n\n` + (r.options.length ? table(r.options, [{ h: 'box', w: 50, f: x => x.hardware }, { h: 'price', w: 26, f: x => x.price }, { h: 'quant', w: 14, f: x => x.quant }, { h: 'tok/s', w: 7, r: 1, f: x => x.est_decode_tps_short }]) + '\n\n' : '') + r.note);
   }
 

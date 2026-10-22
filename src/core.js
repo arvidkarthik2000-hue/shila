@@ -585,19 +585,26 @@ function createShila({ models, hardware, meta }) {
     return out.sort((a, b) => b.score - a.score);
   }
 
-  function fmtInr(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+  // Catalogue prices were captured as Indian listings (INR); they are shown in USD at a fixed rate.
+  const INR_PER_USD = 92;
+  const fmtUsd = n => '$' + Math.round(n).toLocaleString('en-US');
+  const toUsd = inr => Math.round(inr / INR_PER_USD / 5) * 5;
+  function priceUsdRange(hw) {
+    if (hw.priceUsd) return { lo: hw.priceUsd[0], hi: hw.priceUsd[1], converted: false };
+    if (hw.priceInr) return { lo: toUsd(hw.priceInr[0]), hi: toUsd(hw.priceInr[1]), converted: true };
+    return null;
+  }
   function priceText(hw) {
-    if (hw.priceInr) return (hw.priceInr[0] === hw.priceInr[1] ? fmtInr(hw.priceInr[0]) : fmtInr(hw.priceInr[0]) + '–' + fmtInr(hw.priceInr[1])) + (hw.estimate ? ' (est.)' : '');
-    if (hw.priceUsd) return (hw.priceUsd[0] === hw.priceUsd[1] ? '$' + hw.priceUsd[0].toLocaleString('en-US') : '$' + hw.priceUsd[0].toLocaleString('en-US') + '–' + hw.priceUsd[1].toLocaleString('en-US')) + ' (US)';
-    return hw.priceNote || '—';
+    const p = priceUsdRange(hw);
+    if (!p) return hw.priceNote || '—';
+    return (p.converted ? '~' : '') + (p.lo === p.hi ? fmtUsd(p.lo) : fmtUsd(p.lo) + '–' + fmtUsd(p.hi).slice(1)) + (hw.estimate ? ' (est.)' : '');
   }
   function priceSort(hw) {
-    if (hw.priceInr) return (hw.priceInr[0] + hw.priceInr[1]) / 2;
-    if (hw.priceUsd) return ((hw.priceUsd[0] + hw.priceUsd[1]) / 2) * 92;
-    return 0;
+    const p = priceUsdRange(hw);
+    return p ? (p.lo + p.hi) / 2 : 0;
   }
 
-  return { DATA_DATE, MODELS, HARDWARE, ENGINES, CLASS, estimate, plan, qualityTier, bpw, rankEngines, placementLabel, priceText, priceSort, unifiedUsable, fmtInr, formatOk };
+  return { DATA_DATE, MODELS, HARDWARE, ENGINES, CLASS, estimate, plan, qualityTier, bpw, rankEngines, placementLabel, priceText, priceSort, priceUsdRange, unifiedUsable, fmtUsd, INR_PER_USD, formatOk };
 }
 if (typeof module !== 'undefined' && module.exports) module.exports = { createShila };
 if (typeof window !== 'undefined') window.createShila = createShila;

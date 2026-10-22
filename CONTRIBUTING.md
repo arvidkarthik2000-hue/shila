@@ -27,7 +27,11 @@ npm test            # calibration, MCP, parser and site tests
 npm run build       # rebuilds docs/index.html (commit it; CI checks it is current)
 ```
 
-## 3. Ground rules
+## 3. Reddit radar
+
+`.github/workflows/reddit-radar.yml` scans r/LocalLLaMA every 6 hours (`scripts/reddit-radar.js`) and keeps one open issue labelled `radar` listing posts that look like a new model, or a tok/s measurement. It never edits `data/`: a person (or Claude) reads the thread, finds the primary source (model card, repo, benchmark post), and adds the numbers with that URL. Reddit often blocks anonymous requests from datacenter IPs; if the workflow reports HTTP 403, add `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` (a free Reddit "script" app) as repository secrets.
+
+## 4. Ground rules
 
 - Link a source for every number. Mark estimates as estimates.
 - Paraphrase engine and model descriptions; do not copy README text.

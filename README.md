@@ -15,7 +15,7 @@ New inference engines appear every week, most of them built for one model on one
 - **With what?** 21 engines ranked for that box and model, general and model-specific, with install-and-run commands.
 - **What should I buy?** The cheapest catalogued box that runs a model at the speed you need, with October 2026 Indian prices.
 
-Catalogue: 13 models (LFM2.5-24B-A2B, Qwen3.8-27B, Qwen3.8-Flash-Next, Qwen3.6-35B-A3B, Gemma 4, Nemotron 3.5 Lightning and small siblings), 24 machines, 21 engines. **Any other Hugging Face model works** in the MCP server and CLI: SHILA reads its `config.json` and GGUF listings live.
+Catalogue: 14 models (Flint 40B-A2.5B, LFM2.5-24B-A2B, Qwen3.8-27B, Qwen3.8-Flash-Next, Qwen3.6-35B-A3B, Gemma 4, Nemotron 3.5 Lightning and small siblings), 24 machines, 21 engines. **Any other Hugging Face model works** in the MCP server and CLI: SHILA reads its `config.json` and GGUF listings live.
 
 ## Use it from Claude, Cursor or any MCP client
 
@@ -107,7 +107,7 @@ Not modelled: GPU expert caches, thermal throttling in small boxes, PCIe generat
 
 ## Contributing
 
-The most useful contribution is a **measured result**: [submit a benchmark](https://github.com/arvidkarthik2000-hue/shila/issues/new?template=benchmark.yml). Adding a model, a machine or an engine is a JSON edit in `data/`; see [CONTRIBUTING.md](CONTRIBUTING.md).
+The most useful contribution is a **measured result**: [submit a benchmark](https://github.com/arvidkarthik2000-hue/shila/issues/new?template=benchmark.yml). Adding a model, a machine or an engine is a JSON edit in `data/`; see [CONTRIBUTING.md](CONTRIBUTING.md). A [Reddit radar](CONTRIBUTING.md#3-reddit-radar) watches r/LocalLLaMA every 6 hours and files new models and measurements as an issue for curation.
 
 ```
 data/         models.json · hardware.json · meta.json        (CC BY 4.0)

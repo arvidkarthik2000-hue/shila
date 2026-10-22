@@ -1727,5 +1727,67 @@
       "ollama": "yes",
       "mlx": "yes"
     }
+  },
+  {
+    "id": "flint",
+    "attnFlops": 16384,
+    "attnLayers": 14,
+    "archMul": 0.9,
+    "name": "Flint 40B-A2.5B",
+    "vendor": "Recursive",
+    "hf": "RecursiveSI/flint",
+    "family": "Flint",
+    "total": 39.8,
+    "active": 2.5,
+    "kind": "moe",
+    "layers": 49,
+    "kvBytes": 28672,
+    "constStateGB": 0.04,
+    "expertWeightFrac": 0.93,
+    "expertActiveFrac": 0.6,
+    "ctxMax": 262144,
+    "released": "2026-10-21",
+    "license": "Apache-2.0",
+    "reasoning": "unspecified",
+    "vision": false,
+    "mmprojGB": 0,
+    "arch": "49 layers: 2 dense + 47 MoE; 35 sliding-window (513) + 14 full-attention (4 KV heads x 128, from secondary coverage). 256 routed experts, top-6, + 1 shared. Expert fractions are estimates until the config is checked.",
+    "why": "A 2.5B-active coding MoE that fits a 32 GB Mac at 4-bit; Recursive reports 125+ tok/s on a MacBook Pro M4 Pro (vendor figure).",
+    "quants": [
+      {
+        "tag": "MXFP4_MOE",
+        "gb": 22.2,
+        "fmt": "gguf",
+        "repo": "prithivMLmods/flint-MXFP4_MOE-40B-A2.5B",
+        "note": "community quant"
+      },
+      {
+        "tag": "NVFP4",
+        "gb": 22.9,
+        "fmt": "gguf",
+        "repo": "RecursiveSI/flint-nvfp4-gguf",
+        "note": "official; within 0.7 pt of BF16 on Recursive's benchmarks"
+      },
+      {
+        "tag": "Q4_K_M",
+        "gb": 24,
+        "fmt": "gguf",
+        "repo": "Abiray/flint-40B-A2.5B-Q4_K_M-GGUF",
+        "note": "community quant, size approximate"
+      },
+      {
+        "tag": "BF16",
+        "gb": 79.6,
+        "fmt": "bf16",
+        "repo": "RecursiveSI/flint"
+      }
+    ],
+    "anchors": [],
+    "support": {
+      "llamacpp": "yes (unsloth, lmstudio-community GGUFs)",
+      "vllm": "yes (day-0, vLLM blog 2026-10-21)",
+      "ollama": "yes",
+      "mlx": "likely"
+    }
   }
 ]
